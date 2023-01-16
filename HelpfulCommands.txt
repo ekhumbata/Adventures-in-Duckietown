@@ -1,0 +1,18 @@
+//this command shows all duckie bots on network
+dts fleet discover 
+
+//this command starts the gui tools. Once open run the second command to view the camera
+dts start_gui_tools DUCKIEBOT_NAME
+rqt_image_view
+
+//this command lets you move the bot using arrow keys
+dts duckiebot keyboard_control ROBOT_NAME
+
+//this command opens up a "desktop" view. Click the second link generated in the terminal
+dts start_gui_tools --vnc DUCKIEBOT_NAME
+
+//docker stuff
+dts start_gui_tools DUCKIEBOT_NAME
+
+//shutdown the bot
+dts duckiebot shutdown DUCKIEBOT_NAME
