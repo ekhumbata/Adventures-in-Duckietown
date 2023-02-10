@@ -1,92 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adventures in Duckietown - Exercise 1</title>
-</head>
-<body>
-    
-    <h1>Exercise 1</h1>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Adventures in Duckietown - Exercise 1</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 
-    <br>
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
 
-    <h2>Video Demos</h2>
-    <h3>Lane Following Demo</h3>
-    <iframe width="420" height="315"
+/* From extension ms-toolsai.jupyter */
+/* These classnames are inherited from bootstrap, but are present in most notebook renderers */
+
+.alert {
+    width: auto;
+    padding: 1em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+.alert > *:last-child {
+    margin-bottom: 0;
+}
+#preview > .alert:last-child {
+    /* Prevent this being set to zero by the default notebook stylesheet */
+    padding-bottom: 1em;
+}
+
+.alert-success {
+    /* Note there is no suitable color available, so we just copy "info" */
+    background-color: var(--theme-info-background);
+    color: var(--theme-info-foreground);
+}
+.alert-info {
+    background-color: var(--theme-info-background);
+    color: var(--theme-info-foreground);
+}
+.alert-warning {
+    background-color: var(--theme-warning-background);
+    color: var(--theme-warning-foreground);
+}
+.alert-danger {
+    background-color: var(--theme-error-background);
+    color: var(--theme-error-foreground);
+}
+
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <h1 id="exercise-1">Exercise 1</h1>
+<h2 id="video-demos">Video Demos</h2>
+<h3 id="lane-following-demo">Lane Following Demo</h3>
+ <iframe width="420" height="315"
     src="https://www.youtube.com/embed/2pTV_tE8uGw">
     </iframe>
+<h3 id="straight-line-demo">Straight Line Demo</h3>
+<img src="file:///c:\Engineering\CMPUT274\Workspace\assets\images_ex1\Straight Line Demo.gif" width="420" height="500">
+<h3 id="dashboard">Dashboard</h3>
+<img src="file:///c:\Engineering\CMPUT274\Workspace\assets\images_ex1\cam_motor_controls.png" width="800" height="600">
+<h2 id="write-up-and-notes">Write-Up and Notes</h2>
+<h3 id="what-i-implemented">What I implemented</h3>
+<ul>
+<li>A lane following system</li>
+<li>(Almost) a colour detector set up on Docker</li>
+<li>A &quot;Hello World&quot; program on the duckiebot</li>
+</ul>
+<h3 id="what-i-learned">What I learned</h3>
+<p>I learned that robotics combines so many different fields together!
+I also learned a great many new technologies such as:</p>
+<ul>
+<li>ROS</li>
+<li>Docker</li>
+<li>Portainer</li>
+<li>and more!</li>
+</ul>
+<p>I learned how to calibrate the duckiebots camera and wheels and how to control the duckiebot from my laptop.
+I explored Docker a little bit and realize how powerful it is, but also how much more I have to learn from it.</p>
+<h3 id="challenges">Challenges</h3>
+<h4 id="calibration"><strong>Calibration</strong></h4>
+<p>One of the big challenges I had to work on was wheel calibration. While the wheel calibration is fairly simple to execute, getting it right is hard. Due to things like wheel slip, it was incredibly hard to get the duckiebot to drive in a straight line as evident by my video. I continuously updated the calibration until I could get it as straight as possible for a distance of 2m. Likely I will need to preform a calibration each time that I need to use the motor controls on the duckiebot.</p>
+<h4 id="jekyll"><strong>Jekyll</strong></h4>
+<p>Another challenge that I faced was learning to set up and use Jekyll. At the time of writing (Jan 22, 2023) I still sadly don't have it set up so you're probably seeing a not so great website. Moving through the GitHub Documentation, it asked me to install a program called Bundler which was supposed to take care of dependencies for me. However even after installing it, I continued to run into dependency issues I could not resolve.I did quite a lot of research into the problems that I was having with installing and utilizing Bundler, Jekyll and Ruby, but couldn't seem to get them fixed. I resorted back to HTML, CSS, and JS manually as an alternative, but I hope that I'll be able to get this set up in the future.</p>
+<h4 id="colour-detector"><strong>Colour Detector</strong></h4>
+<p>Ahh yes. The Color Detector. Since I'm a computer engineer, I don't have a lot of the experience that some of the computing science majors have with things like OpenCV which was needed for this step. Nevertheless, I worked on following the instructions provided by the &quot;duckumentation&quot;. After reading through OpenCV documentation for a good while, I started trying to debug the code given to us and learning more the gst pipeline. <br> <br></p>
+<p>One of the things I tried was stopping all process that used the camera except the color detector. One of the notes given by Duckietown during this step is to use Portainer to make sure all those processes are stopped incase the color detector is not functioning correctly. Sadly, that also did not help to get the detector functioning. After editing almost all the fields and working with the TA's, we came to the conclusion that the documentation was likely outdated and it
+wasn't worth to keep sinking time into as we wouldn't be using this method to connect to the camera in the future. In the future we will be subscribing to ROS topics to connect with the camera.</p>
 
-    <h3>Straight Line Demo</h3>
-    <img src="./assets/images_ex1/Straight Line Demo.gif" width="420" height="500">
-
-    <h3>Dashboard</h3>
-    <img src="./assets/images_ex1/cam_motor_controls.png" width="800" height="600">
-    <br>
-
-    <h2>Write-Up and Notes</h2>
-    <!-- <p>some text here</p> -->
-
-    <h3>What I Implemented</h3>
-    <ul>
-        <li>A lane following system</li>
-        <li>(Almost) a color detector set up on Docker</li>
-        <li>A "Hello World" program on the duckiebot</li>
-    </ul>
-
-    <h3>What I learned</h3>
-    <p>I learned that robotics combines so many different fields together!
-        I also learned a great many new technologies such as:
-        <ul>
-            <li>ROS</li>
-            <li>Docker</li>
-            <li>Portainer</li>
-            <li>and more!</li>
-        </ul>
+<!-- <footer>
+&copy2023 by Eric Khumbata <br>
+<a href="./index.html">Link to Home</a>
+Last Modified: <script>document.write(document.lastModified)</script>
+</footer> -->
         
-        I learned how to calibrate the duckiebots camera and wheels and how to control the duckiebot from my laptop.
-        I explored Docker a little bit and realize how powerful it is, but also how much more I have to learn from it.
-
-    </p>
-
-    <h3>Challenges</h3>
-    <h4>Calibration</h4>
-    <p>One of the big challenges I had to work on was wheel calibration. While the wheel calibration is fairly simple to execute, getting 
-        it right is hard. Due to things like wheel slip, it was incredibly hard to get the duckiebot to drive in a straight line as evident
-        by my video. I continuously updated the calibration until I could get it as straight as possible for a distance of 2m. Likely I will
-        need to preform a calibration each time that I need to use the motor controls on the duckiebot.
-    </p>
-
-    <h4>Jekyll</h4>
-    <p>Another challenge that I faced was learning to set up and use Jekyll. At the time of writing (Jan 22, 2023) I still
-        sadly don't have it set up so you're probably seeing a not so great website. Moving through the GitHub Documentation, it asked me 
-        to install a program called Bundler which was supposed to take care of dependencies for me. However even after installing it, I continued
-        to run into dependency issues I could not resolve.I did quite a lot of research into the problems that I was having with installing and 
-        utilizing Bundler, Jekyll and Ruby, but couldn't seem to get them fixed. I resorted back to HTML, CSS, and JS manually as an alternative,
-        but I hope that I'll be able to get this set up in the future.
-    </p>
-
-    <h4>Color Detector</h4>
-    <p>Ahh yes. The Color Detector. Since I'm a computer engineer, I don't have a lot of the experience that some of the computing
-        science majors have with things like OpenCV which was needed for this step. Nevertheless, I worked on following the instructions provided
-        by the "duckumentation". After reading through OpenCV documentation for a good while, I started trying to debug the code given to us and learning more
-        the gst pipeline. <br> <br>   
         
-        One of the things I tried was stopping all process that used the camera except the color detector. One of the notes given by Duckietown during this step
-        is to use Portainer to make sure all those processes are stopped incase the color detector is not functioning correctly. Sadly, that also did not help to 
-        get the detector functioning.
-
-        After editing almost all the fields and working with the TA's, we came to the conclusion that the documentation was likely outdated and it
-        wasn't worth to keep sinking time into as we wouldn't be using this method to connect to the camera in the future. In the future we will be subscribing to 
-        ROS topics to connect with the camera.
-    </p>
-
-    <!-- <footer>
-        &copy2023 by Eric Khumbata <br>
-        <a href="./index.html">Link to Home</a>
-        Last Modified: <script>document.write(document.lastModified)</script>
-    </footer> -->
-
-</body>
-</html>
+    </body>
+    </html>
