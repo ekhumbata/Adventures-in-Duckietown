@@ -91,7 +91,7 @@
 <h3 id="introduction-to-publishers-and-subscribers">Introduction to Publishers and Subscribers</h3>
 <br>
 <p>Below you can see the screenshot to view the camera image in my custom topic using rqt_image_view.</p>
-<p><img src="file:///c:\Users\erick\Adventures-in-Duckietown\docs\assets\images_ex2\1.2code.jpg" alt="" class="centre"></p>
+<p><img src="../exercise-2/Deliverables/CameraSubscriberOutput.png" alt="" class="centre"></p>
 <figcaption align = "center"><b>Fig.1: Diagram to find tick rotation</b></figcaption>
 <p>This was the code used to generate the custom topic to view the above image. Looking at it again, it's pretty trivial. However, doing it for the first time definitely took some searching and meddling around.</p>
 <pre><code class="language-python"><span class="hljs-comment">#!/usr/bin/env python3</span>
@@ -282,7 +282,7 @@ speed?</strong></p>
 <br>
 <p><strong>Question: How did you keep track of the angle rotated?</strong>
 After messing around with some of the forward and inverse kinematics, we decided to act like physics students and draw out our problem. Lo and behold, those physics people are really onto something. A diagram of what we did can be seen here:</p>
-<p><img src="file:///c:\Users\erick\Adventures-in-Duckietown\docs\assets\images_ex2\robotLab2Diagram.png" alt="" class="centre"></p>
+<p><img src="./assets/images_ex2/robotLab2Diagram.png" alt="" class="centre"></p>
 <figcaption align = "center"><b>Fig.2: Diagram to find tick rotation</b></figcaption>
 <br>
 <p>When working with the duckiebots, one thing to internalize is that each motor is independent. Therefore, we needed to take the average ticks over both wheels when doing these calculations for rotation as well as distance. Doing this method helped us to create a good rotation function.</p>
@@ -353,11 +353,11 @@ try to approach your original initial position.</li>
 <p>To view the CSV file for Exercise 1.3 please click <a href="https://drive.google.com/file/d/1-XeSl3KX1g5sQH5_fBmgWy_LCwrGHZSH/view?usp=share_link">here</a>.</p>
 <p>To view the CSV file for Exercise 2 please click <a href="https://drive.google.com/file/d/1ZPEUZV62XAuHt9HtEQeeKMZo85uxjfln/view?usp=share_link">here</a>.</p>
 <p>My lab partner, Cameron, also made these really awesome visuals with the use of Google Colab to be able to get a feel for what the data means!</p>
-<p><img src="file:///c:\Users\erick\Adventures-in-Duckietown\docs\assets\images_ex2\E1compressed.gif" alt="" class="centre"></p>
+<p><img src="./assets/images_ex2/E1compressed.gif" alt="" class="centre"></p>
 <figcaption align = "center"><b>Fig.3: Data visualization for straight line task</b></figcaption>
 <br>
 <p>Note for this below graph, this represents where the robot <em>thinks</em> it is. There has been no PID implemented so we expect some error seen in the real world vs the simulation.</p>
-<p><img src="file:///c:\Users\erick\Adventures-in-Duckietown\docs\assets\images_ex2\E2compressed.gif" alt="" class="centre"></p>
+<p><img src="./assets/images_ex2/E2compressed.gif" alt="" class="centre"></p>
 <figcaption align = "center"><b>Fig.4: Data visualization for part 2</b></figcaption>
 <br>
 <h2 id="wrapping-up">Wrapping Up</h2>
