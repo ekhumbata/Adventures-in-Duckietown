@@ -1,0 +1,10 @@
+<launch>
+
+  <group ns="$(arg veh)">  
+
+    <node pkg="my_package" type="odometry_node.py" name="odometry_node" output="screen"/>
+    <!-- <node pkg="my_package" type="my_subscriber_node.py" name="my_subscriber_node"  output="screen"/> -->
+
+  </group>
+
+</launch>

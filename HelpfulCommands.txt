@@ -16,3 +16,15 @@ dts start_gui_tools DUCKIEBOT_NAME
 
 //shutdown the bot
 dts duckiebot shutdown DUCKIEBOT_NAME
+
+//gives all of the rostopics (in the gui tools)
+rostopic list
+
+//gives the info about a topic (in the gui toolds)
+rostopic info 'topic name'
+
+//gives all the rosmsgs (in the gui tools)
+rosmsg list
+
+//gives the attributes and methods about a message (in the gui tools)
+rosmsg info 'msg name'
