@@ -232,7 +232,7 @@ location?</strong></p>
 <p>There are a few reasons why there could be differences between the actual and desired location:</p>
 <ol>
 <li>Wheel slippage: If the wheels slip on the foam mats that the duckiebots drive on top of, the extra motor ticks will cause the duckiebot to think it has moved farther than it has.</li>
-<li>Error in the encoders: with our implementation and the design of the duckiebots, slight differences in expected and actual encoder values can cause massive changes in the actual vs. desired locations.</li>
+<li>Error in the encoders: With our implementation and the design of the duckiebots, slight differences in expected and actual encoder values can cause massive changes in the actual vs. desired locations.</li>
 <li>Wheel drift: During calibration, we tried to get the duckiebot to go as straight as we could, but it is near impossible to get it exactly straight.</li>
 </ol>
 <p>In our tests, after driving forward and backward 1.25m, we measured an error in each coordinate of: (+0.24m, -0.01m, -0.2rad).</p>
@@ -270,7 +270,7 @@ out the topic that could make the motor move?</strong></p>
 <br>
 <p><strong>Question: Which speed are you using? What happens if you increase/decrease the
 speed?</strong></p>
-<p>We use a speed of 0.5 for almost all movements (The duckiebots range is 0-1 for speed). For some of the turns, a lower speed was used for more precision.</p>
+<p>We use a speed of 0.5 for almost all movements (the duckiebots range is 0-1 for speed). For some of the turns, a lower speed was used for more precision.</p>
 <p>As noted above, a lower speed can help us to increase our precision and accuracy. With lower speeds the duckiebot is also more prone to getting stuck.</p>
 <p>Higher speeds help the duckiebot to move easier as well as come back up on the mat if it slips off. It also can create a bit more slippage and in turn ruin or calculations for the robot and world frame.</p>
 <p>Using a value of 0.5 gives us the best power to precision ratio for this lab.</p>
