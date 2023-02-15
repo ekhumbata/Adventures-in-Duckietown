@@ -1,7 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env python3
 import apriltag
 import argparse
 import cv2
+
+import os
+import rospy
+from duckietown.dtros import DTROS, NodeType
+import numpy as np
+
+#from std_msgs.msg import String
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CompressedImage
 
 
 class apriltag_node(DTROS):
@@ -13,6 +22,30 @@ class apriltag_node(DTROS):
         print("successfully compiled")
         print("==========================")
 
+        self.grey_img = None
+        self.run = True
+
+        # subscribers
+        img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
+        self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
+
+        #publishers
+        self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage)
+
+    def cb_img(self, msg):
+        data_arr = np.fromstring(data.data, np.uint8)
+        grey_img = cv2.imdecode(data_arr, cv2.COLOR_BGR2GRAY)
+        self.grey_img = grey_img
+
+        self.detect_tag(grey_img)
+
+    def img_pub(self):
+        msg = CompressedImage()
+        msg.header.stamp = rospy.Time.now()
+        msg.format = "jpeg"
+        msg.data = np.array(cv2.imencode('.jpg', self.grey_img)[1]).tostring()
+
+        self.pub.publish(msg)
 
     def detect_tag(self, img)
         # construct the argument parser and parse the arguments
@@ -20,8 +53,7 @@ class apriltag_node(DTROS):
         # ap.add_argument("-i", "--image", required=True,
         #     help="path to input image containing AprilTag")
         # args = vars(ap.parse_args())
-        image = cv2.imread(img)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = img
         # define the AprilTags detector options and then detect the AprilTags
         # in the input image
         print("[INFO] detecting AprilTags...")
@@ -54,18 +86,12 @@ class apriltag_node(DTROS):
         cv2.imshow("Image", image)
         cv2.waitKey(0)
 
-
-
 if __name__ == '__main__':
-    node = apriltag_node(node_name='apriltag_node')
-    # Keep it spinning to keep the node alive
-    
-    
-    rate = rospy.Rate(10) # 1Hz
-    while not rospy.is_shutdown():
+    # create the node
+    node = apriltag_detector_node(node_name='april_tag_detector')
 
-        # node.publishVelocity()
+    rate = rospy.Rate(100) # 1Hz
+    while not rospy.is_shutdown() and node.run:
+        node.img_pub()
         rate.sleep()
-
-
-    rospy.loginfo("apriltag is up and running...")
+    
