@@ -28,3 +28,6 @@ rosmsg list
 
 //gives the attributes and methods about a message (in the gui tools)
 rosmsg info 'msg name'
+
+//builds program on computer and runs on duckiebot
+dts devel build -f && dts devel run -R DUCKIEBOT_NAME

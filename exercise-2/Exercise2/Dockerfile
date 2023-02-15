@@ -1,7 +1,7 @@
 # parameters
 ARG REPO_NAME="lab-2-template-ros"
 ARG DESCRIPTION="CMPUT 412 Lab 2"
-ARG MAINTAINER="Cameron Hildebrandt (childebr@ualberta.ca)"
+ARG MAINTAINER="Eric Khumbata (khumbata@ualberta.ca)"
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
 ARG ICON="cube"
 
