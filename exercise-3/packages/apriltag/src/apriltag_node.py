@@ -27,7 +27,7 @@ class apriltag_node(DTROS):
         print("successfully compiled")
         print("==========================")
 
-        self.grey_img = None
+        self.grey_img = np.array([])
         self.run = True
 
         # subscribers
@@ -38,21 +38,23 @@ class apriltag_node(DTROS):
         self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage)
 
     def cb_img(self, msg):
-        data_arr = np.fromstring(data.data, np.uint8)
-        grey_img = cv2.imdecode(data_arr, cv2.COLOR_BGR2GRAY)
+        data_arr = np.fromstring(msg.data, np.uint8)
+        grey_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
+        grey_img = cv2.cvtColor(grey_img, cv2.COLOR_BGR2GRAY)
         self.grey_img = grey_img
 
         self.detect_tag(grey_img)
 
     def img_pub(self):
-        msg = CompressedImage()
-        msg.header.stamp = rospy.Time.now()
-        msg.format = "jpeg"
-        msg.data = np.array(cv2.imencode('.jpg', self.grey_img)[1]).tostring()
+        if self.grey_img.any():
+            msg = CompressedImage()
+            msg.header.stamp = rospy.Time.now()
+            msg.format = "jpeg"
+            msg.data = np.array(cv2.imencode('.jpg', self.grey_img)[1]).tostring()
 
-        self.pub.publish(msg)
+            self.pub.publish(msg)
 
-    def detect_tag(self, img)
+    def detect_tag(self, img):
         # construct the argument parser and parse the arguments
         # ap = argparse.ArgumentParser()
         # ap.add_argument("-i", "--image", required=True,
@@ -93,7 +95,7 @@ class apriltag_node(DTROS):
 
 if __name__ == '__main__':
     # create the node
-    node = apriltag_detector_node(node_name='april_tag_detector')
+    node = apriltag_node(node_name='april_tag_detector')
 
     rate = rospy.Rate(100) # 1Hz
     while not rospy.is_shutdown() and node.run:
