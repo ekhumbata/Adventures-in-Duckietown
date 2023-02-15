@@ -43,7 +43,7 @@ class apriltag_node(DTROS):
         grey_img = cv2.cvtColor(grey_img, cv2.COLOR_BGR2GRAY)
         self.grey_img = grey_img
 
-        self.detect_tag(grey_img)
+        #self.detect_tag(grey_img)
 
     def img_pub(self):
         if self.grey_img.any():
