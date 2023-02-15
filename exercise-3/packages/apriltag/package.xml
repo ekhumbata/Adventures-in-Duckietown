@@ -1,12 +1,20 @@
 <?xml version="1.0"?>
 <package>
   <name>apriltag</name>
+<<<<<<< HEAD
   <version>0.1.0</version>
   <description>
   This package is a test for RH3.
   </description>
   <maintainer email="jleng1@ualberta.ca">jasper</maintainer>
   <license>None</license>
+=======
+  <version>1.0.0</version>
+  <description>The apriltag meta package</description>
+
+  <license>GPLv3</license>
+<maintainer email="mwalter@ttic.edu">Matthew R. Walter</maintainer>
+>>>>>>> 266dc40b2316cd5d9d4a737e8f2f424be06039a1
 
   <buildtool_depend>catkin</buildtool_depend>
 </package>

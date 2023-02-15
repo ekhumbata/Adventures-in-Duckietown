@@ -1,4 +1,4 @@
-# parameters for deadreckoning_node
+# parameters for apriltag_node
 
 # How frequently to publish odometry
 publish_hz: 10.0

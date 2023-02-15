@@ -13,11 +13,19 @@ from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import CompressedImage
 
 
-class apriltag_detector_node(DTROS):
+#from std_msgs.msg import String
+from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CompressedImage
+
+
+class apriltag_node(DTROS):
 
     def __init__(self, node_name):
-        super(apriltag_detector_node, self).__init__(node_name=node_name, node_type=NodeType.LOCALIZATION)
+        super(apriltag_node, self).__init__(node_name=node_name, node_type=NodeType.LOCALIZATION)
         self.node_name = node_name
+        print("==========================")
+        print("successfully compiled")
+        print("==========================")
 
         self.grey_img = None
         self.run = True
