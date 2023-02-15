@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>deadreckoning</name>
+  <name>apriltag</name>
   <version>1.0.0</version>
-  <description>The deadreckoning meta package</description>
+  <description>The apriltag meta package</description>
 
   <license>GPLv3</license>
 <maintainer email="mwalter@ttic.edu">Matthew R. Walter</maintainer>

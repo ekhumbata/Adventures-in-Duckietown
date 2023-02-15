@@ -1,13 +1,17 @@
+#!/bin/bash
 import apriltag
 import argparse
 import cv2
 
 
-class apriltag_detector_node(DTROS):
+class apriltag_node(DTROS):
 
     def __init__(self, node_name):
-        super(apriltag_detector_node, self).__init__(node_name=node_name, node_type=NodeType.LOCALIZATION)
+        super(apriltag_node, self).__init__(node_name=node_name, node_type=NodeType.LOCALIZATION)
         self.node_name = node_name
+        print("==========================")
+        print("successfully compiled")
+        print("==========================")
 
 
     def detect_tag(self, img)
@@ -49,3 +53,19 @@ class apriltag_detector_node(DTROS):
         # show the output image after AprilTag detection
         cv2.imshow("Image", image)
         cv2.waitKey(0)
+
+
+
+if __name__ == '__main__':
+    node = apriltag_node(node_name='apriltag_node')
+    # Keep it spinning to keep the node alive
+    
+    
+    rate = rospy.Rate(10) # 1Hz
+    while not rospy.is_shutdown():
+
+        # node.publishVelocity()
+        rate.sleep()
+
+
+    rospy.loginfo("apriltag is up and running...")
