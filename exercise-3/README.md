@@ -6,6 +6,10 @@ for developing ROS-based software in Duckietown.
 **NOTE:** If you want to develop software that does not use
 ROS, check out [this template](https://github.com/duckietown/template-basic).
 
+## Requirements
+install cmake `pip install cmake`<br>
+install apriltag `pip install apriltag` 
+
 
 ## How to use it
 
