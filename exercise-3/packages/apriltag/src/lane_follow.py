@@ -33,8 +33,11 @@ class lane_follow_node(DTROS):
         self.speed = 0.2
         self.omega = 0
         self.size_ratio = 0.9
+
+        self.prev_time = 0
+        self.prev_diff = None
         # how much each PID param effects change in omega
-        self.PID = [1, 1, 0.5]
+        self.PID = [1, 1, 0]
 
 
 
@@ -52,8 +55,9 @@ class lane_follow_node(DTROS):
         # get the image from camera and mask over the hsv range set in init
         data_arr = np.fromstring(msg.data, np.uint8)
         col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
+        crop = [len(col_img) // 3, len(col_img) - 100]
         hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
-        imagemask = np.asarray(cv2.inRange(hsv[len(col_img) // 3 :], self.lower_bound, self.upper_bound))
+        imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
 
         # find all the yellow dotted lines
         contours, hierarchy = cv2.findContours(imagemask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -63,14 +67,14 @@ class lane_follow_node(DTROS):
         x,y,w,h = cv2.boundingRect(largest)
         conts = [largest]
         # ignore the largest stripe if it is too close to the bot
-        if y > 200:
-            contours.remove(largest)
-            largest = max(contours, key = cv2.contourArea)
-            conts.append(largest)
-            x,y,w,h = cv2.boundingRect(largest)
+        # if y > 200:
+        #     contours.remove(largest)
+        #     largest = max(contours, key = cv2.contourArea)
+        #     conts.append(largest)
+        #     x,y,w,h = cv2.boundingRect(largest)
         
         # draw visulaization stuff
-        image = cv2.drawContours(col_img[len(col_img) // 3 :], conts, -1, (0,255,0), 3)
+        image = cv2.drawContours(col_img[crop[0] : crop[1]], conts, -1, (0,255,0), 3)
 
         image = cv2.line(image, (x, y+h//2), (x + int((self.size_ratio*(y+h))), y+h), (0,255,0), 2)
 
@@ -85,7 +89,7 @@ class lane_follow_node(DTROS):
 
         # if only move the bot if drive is true
         if self.drive:
-            self.pid(x, y+ h//2, len(image[i]) // 2)
+            self.pid(x, y + h//2, len(image[i]) // 2) # set this to y - h//2 for english driver mode
         
 
     def img_pub(self):
@@ -112,9 +116,12 @@ class lane_follow_node(DTROS):
         self.omega = -self.PID[0] * diff
 
         # derivative part
-        dt = rospy.Time() - self.prev_time
-        self.prev_time = rospy.Time()
-        self.omega += self.PID[2] * (diff - self.prev_diff) / dt
+        curr_time = rospy.get_time()
+        dt = curr_time - self.prev_time
+        self.prev_time = curr_time
+        if self.prev_diff != None:
+            self.omega += self.PID[2] * (diff - self.prev_diff) / dt
+        self.prev_diff = diff
 
         # integral part?
 
