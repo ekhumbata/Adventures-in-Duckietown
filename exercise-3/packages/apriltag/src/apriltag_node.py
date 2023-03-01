@@ -11,8 +11,10 @@ import numpy as np
 #from std_msgs.msg import String
 from sensor_msgs.msg import CameraInfo
 from duckietown_msgs.srv import ChangePattern
+from duckietown_msgs.msg import LEDPattern
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String
+from std_msgs.msg import ColorRGBA
 
 
 class apriltag_node(DTROS):
@@ -38,6 +40,8 @@ class apriltag_node(DTROS):
             93: "GREEN"
         }
 
+        self.pub_led = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + "/led_emitter_node/led_pattern", LEDPattern, queue_size=10)
+
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
@@ -47,10 +51,12 @@ class apriltag_node(DTROS):
         self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage)
 
         # services 
-        led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
-        os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
-        rospy.wait_for_service(led_topic)
-        self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
+        # led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
+        # os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
+        # rospy.wait_for_service(led_topic)
+        # self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
+
+        self.publishLEDs(1.0, 0.0, 0.0)
 
     def cb_img(self, msg):
         data_arr = np.fromstring(msg.data, np.uint8)
@@ -69,10 +75,37 @@ class apriltag_node(DTROS):
 
             self.pub.publish(msg)
 
+    def publishLEDs(self, red, green, blue):
+        set_led_cmd = LEDPattern()
+
+        for i in range(5):
+            rgba = ColorRGBA()
+            rgba.r = red
+            rgba.g = green
+            rgba.b = blue
+            rgba.a = 1.0
+            set_led_cmd.rgb_vals.append(rgba)
+
+        self.pub_led.publish(set_led_cmd)
+
     def change_led_to(self, new_col):
-        col = String()
-        col.data = new_col
-        self.change_led(col)
+        # print("col:", new_col)
+
+        if(new_col == "RED"):
+            self.publishLEDs(1.0, 0.0, 0.0)
+
+        elif(new_col == "GREEN"):
+            self.publishLEDs(0.0, 1.0, 0.0)
+
+        elif(new_col == "BLUE"):
+            self.publishLEDs(0.0, 0.0, 1.0)
+
+        else:
+            self.publishLEDs(1.0, 1.0, 1.0)
+
+        # col = String()
+        # col.data = new_col
+        # self.change_led(col)
 
     def detect_tag(self, img):
         # convert the img to greyscale
