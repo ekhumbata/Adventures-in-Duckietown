@@ -55,7 +55,7 @@ class lane_follow_node(DTROS):
         # get the image from camera and mask over the hsv range set in init
         data_arr = np.fromstring(msg.data, np.uint8)
         col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
-        crop = [len(col_img) // 3, len(col_img) - 100]
+        crop = [len(col_img) // 3, -1]
         hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
         imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
 
@@ -67,11 +67,11 @@ class lane_follow_node(DTROS):
         x,y,w,h = cv2.boundingRect(largest)
         conts = [largest]
         # ignore the largest stripe if it is too close to the bot
-        # if y > 200:
-        #     contours.remove(largest)
-        #     largest = max(contours, key = cv2.contourArea)
-        #     conts.append(largest)
-        #     x,y,w,h = cv2.boundingRect(largest)
+        if y > 200:
+            contours.remove(largest)
+            largest = max(contours, key = cv2.contourArea)
+            conts.append(largest)
+            x,y,w,h = cv2.boundingRect(largest)
         
         # draw visulaization stuff
         image = cv2.drawContours(col_img[crop[0] : crop[1]], conts, -1, (0,255,0), 3)

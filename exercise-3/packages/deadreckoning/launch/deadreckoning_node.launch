@@ -13,5 +13,25 @@
             <rosparam command="load"
                 file="$(find deadreckoning)/config/$(arg node_name)/$(arg param_file_name).yaml"/>
         </node>
+
+
+        45:  0.78539816339  
+        90:  1.57079632679
+        135: 2.35619449019
+        180: 3.14159265359
+        
+
+        <!-- static locs for apriltags                                                    x y z roll yaw pitch  Parent Name-->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_200_static" args="0.17 0.17 0.18 0.78539816339 0 -1.57079632679 AprilParent at_200_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_201_static" args="1.65 0.17 0.18 2.35619449019 0 -1.57079632679 AprilParent at_201_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_58_static" args="0.574 1.259 0.18 -1.57079632679 0 -1.57079632679 AprilParent at_58_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_162_static" args="1.253 1.253 0.18 3.14159265359 0 -1.57079632679 AprilParent at_162_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_153_static" args="1.75 1.252 0.18 -1.57079632679 0 -1.57079632679 AprilParent at_153_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_133_static" args="1.253 1.755 0.18 1.57079632679 0 -1.57079632679 AprilParent at_133_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_169_static" args="0.574 1.755 0.18 0 0 -1.57079632679 AprilParent at_169_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_62_static" args="0.075 1.755 0.18 1.57079632679 0 -1.57079632679 AprilParent at_62_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_93_static" args="0.17 2.84 0.18 -0.78539816339 0 -1.57079632679 AprilParent at933_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_94_static" args="1.65 2.84 0.18 -2.35619449019 0 -1.57079632679 AprilParent a9433_static"/>
+
     </group>
 </launch>

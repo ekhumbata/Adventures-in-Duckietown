@@ -14,10 +14,10 @@ ticks_per_meter: 656
 wheelbase: 0.1
 
 # origin reference frame name
-origin_frame: "~/odom"
+origin_frame: "~/WorldFrame"
 
 # target reference frame name
-target_frame: "~/base_footprint"
+target_frame: "~/odometry"
 
 # Verbose output
 debug: False
