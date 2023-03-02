@@ -16,7 +16,6 @@ from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String
 from std_msgs.msg import ColorRGBA
 
-
 class apriltag_node(DTROS):
 
     def __init__(self, node_name):
@@ -26,14 +25,18 @@ class apriltag_node(DTROS):
         self.grey_img = np.array([])
         self.run = True
         self.prev_img = None
+        #no detection
         self.curr_col = "WHITE"
         self.sign_to_col = {
+            #blue = T-intersection
             153: "BLUE",
             58: "BLUE", 
             133: "BLUE", 
             62: "BLUE", 
+            #red = stop sign
             162: "RED",
             169: "RED",
+            #green = UofA Tag
             201: "GREEN",
             200: "GREEN",
             94: "GREEN",
