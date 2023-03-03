@@ -21,6 +21,7 @@ Feel free to provide it to me! 😅
 ## Authors and Acknowledgment
 - Eric Khumbata
 - Cameron Hildebrandt
+- Jasper Eng
 
 ## Project status
 In development...
