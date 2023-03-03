@@ -32,7 +32,7 @@ class DeadReckoningNode(DTROS):
         ~debug (:obj: `bool`): Enable/disable debug output
 
     Publisher:
-        ~odom (:obj:`Odometry`): The computed odometry
+        ~odometry (:obj:`Odometry`): The computed odometry
 
     Subscribers:
         ~left_wheel_encoder_node/tick (:obj:`WheelEncoderStamped`): Encoder ticks for left wheel
@@ -77,7 +77,6 @@ class DeadReckoningNode(DTROS):
 
         # Setup subscribers
         self.sub_encoder_left = message_filters.Subscriber("~left_wheel", WheelEncoderStamped)
-
         self.sub_encoder_right = message_filters.Subscriber("~right_wheel", WheelEncoderStamped)
 
         # Setup the time synchronizer
@@ -87,7 +86,7 @@ class DeadReckoningNode(DTROS):
         self.ts_encoders.registerCallback(self.cb_ts_encoders)
 
         # Setup publishers
-        self.pub = rospy.Publisher("~odom", Odometry, queue_size=10)
+        self.pub = rospy.Publisher("~odometry", Odometry, queue_size=10)
 
         # Setup timer
         self.timer = rospy.Timer(rospy.Duration(1 / self.publish_hz), self.cb_timer)
@@ -95,6 +94,8 @@ class DeadReckoningNode(DTROS):
         self._print_every_sec = 30
         # tf broadcaster for odometry TF
         self._tf_broadcaster = TransformBroadcaster()
+
+        self.teleport_odometry(0.32, 1.58, 1.57079632679)
 
         self.loginfo("Initialized")
 
@@ -117,7 +118,7 @@ class DeadReckoningNode(DTROS):
         dtl = left_encoder.header.stamp - self.left_encoder_last.header.stamp
         dtr = right_encoder.header.stamp - self.right_encoder_last.header.stamp
         if dtl.to_sec() < 0 or dtr.to_sec() < 0:
-            self.loginfo("Ignoring stale encoder message")
+            # self.loginfo("Ignoring stale encoder message")
             return
 
         left_dticks = left_encoder.data - self.left_encoder_last.data
@@ -214,6 +215,14 @@ class DeadReckoningNode(DTROS):
                 ),
             )
         )
+
+    def teleport_odometry(self, x, y, yaw):
+        self.x, self.y, self.yaw = x, y, yaw
+
+        # yaw in radians
+
+        # self.q = tr.quaternion_from_euler(0, 0, self.yaw)
+        self.publish_odometry()
 
     @staticmethod
     def angle_clamp(theta):
