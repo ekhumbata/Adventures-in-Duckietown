@@ -16,9 +16,9 @@ Below you can see a video of the duckiebot detecting the apriltags. When this fi
 
 <br>
 
-**What does the april tag library return to you for determining its position?**
+**What does the apriltag library return to you for determining its position?**
 
-The april tag library returns an AprilTag object for us! This is incredibly helpful since we are able to use commands like `apriltag.corners` to help draw the bounding box of the image. 
+The apriltag library returns an AprilTag object for us! This is incredibly helpful since we are able to use commands like `apriltag.corners` to help draw the bounding box of the image. 
 
 <br>
 
@@ -29,11 +29,11 @@ The april tag library returns an AprilTag object for us! This is incredibly help
 
 <br>
 
-As stated in the above picture, april tag detections will increase on the *Z* and *X* axis as they move in the positive direction. April tag detections will decrease as they move in the negative direction on the *Y* axis. 
+As stated in the above picture, apriltag detections will increase on the *Z* and *X* axis as they move in the positive direction. apriltag detections will decrease as they move in the negative direction on the *Y* axis. 
 
 <br>
 
-**What frame orientation does the april tag use?**
+**What frame orientation does the apriltag use?**
 
 <u>not sure about this question</u>
 
@@ -107,10 +107,120 @@ answer
 
 <br>
 
-all of the stuff goes here
+Below you can see view from RViz as we do a lap around the track. The camera feed, odometry frame and static apriltag frame is shown.
 
+**Video here!**
 
 <br>
+
+**Where did your odometry seem to drift the most? Why would that be?**
+
+The most drift was seen when turning. The necessity for encoder precision is maximized in the turns since small errors can compound and cause large drift. 
+
+<br>
+
+**Did adding the landmarks make it easier to understand where and when the odometry
+drifted?**
+
+Adding the landmarks made it significantly easier! Being able to visualize where the robot is in real-time is very beneficial. 
+
+<br>
+
+**Show the generated transform tree graph, what is the root/parent frame?**
+
+**image here**
+
+There are currently two root frames - the first being the “{robot_name}/WorldFrame” frame that we created for the odometry and apriltag locations. The second was the “{robot_name} footprint” frame that contained all of the components of the bot are children of. It made sense to set the parent of the footprint frame to be the odometry frame, since we then would be able to visualize all components of the robot relative to the apriltag locations.
+
+<br>
+
+**Move the wheels and make note of which join is moving. What type of joint is this?**
+
+To determine this, first we set footprint's parent frame to be the odometry frame. For some time we tried to figure out how to connect the footprint of the bot to the odometry frame so the bot is placed where it perceived itself to be in the world. Using static transforms (similar to the apriltags) made this job possible. Plus, we use this same method further on! Being able to utilize all of this helped us to find that almost every joint type is fixed but the wheel joints are continuous.
+
+<br>
+
+**You may notice that the wheel frames rotate when you rotate the wheels, but the frames never move from the origin? Even if you launch your odometry node the duckiebot’s frames do not move. Why is that?**
+
+This was due to the two root nodes. We could set RViz to show the footprint of the duckiebot OR show the WorldFrame with the odometry node. We need to connect the footprint to the odometry node for this to link properly.
+
+<br>
+
+**What should the translation and rotation be from the odometry child to robot parent frame? In what situation would you have to use something different?**
+
+In this case, we want to use a translation of $(0,0,0)$ and a rotation of $(0,0,0)$. The odometry node shows precisely where the bot thinks it is, so no rotation or translation is needed. For example, we would need a translation or rotation if the odometry node was publishing the robot frame 90° off of expected.
+
+<br>
+
+**After creating this link generate a new transform tree graph. What is the new root/parent frame for your environment?**
+
+The new root is just footprint. The key difference here is that the WorldFrame, apriltags, and odometry node are not appearing as a separate tree. We understand it to be that the “tf2_tools view_frames.py” script is hardcoded to assume the root is footprint, so even though footprint now has a parent odometry_node, it is not shown.
+
+<br>
+
+**Can a frame have two parents? What is your reasoning for this?**
+
+No. The child frame needs to be positioned relative to the parent. If there are two parents that have two different positions, what does it mean to be $(+0.5, +0.5)$ transformed from both parents? This would give an inconclusive result or a bad coordinate. However, a parent can have multiple children; there’s no issue having multiple children reference a single parent’s location.
+
+<br>
+
+**Can an environment have more than one parent/root frame?**
+
+It can, but it is highly recommended not to. Issue visualizing in RViz will occur as well as issues in testing and debugging the code.  
+
+<br>
+
+**Show the newly generated transform tree graph, what is the new root/parent frame?**
+
+**image here**
+
+The new parent frame shown on the transform tree graph is footprint - but in reality the root is “WorldFrame”. You can imagine just drawing a connection between “odometry” and “footprint” in **Enter figure number here!** - this is the true new tree.
+
+<br>
+
+Below you can see a video of the duckiebot moving around the world frame with all robot frames attached to the moving odometry frame. Apriltag detections are also shown in the camera feed and visualized in RViz.
+
+**video here!**
+
+<br>
+
+**How far off are your detections from the static ground truth?**
+
+answer
+
+<br>
+
+**What are two factors that could cause this error?**
+
+1. The code to convert the 2d bounding box + depth to the 3d coordinate from the camera doesn’t account for distortion of the lens. 
+2. Inaccuracies converting from the camera frame such as not accounting for camera being pointed just slightly down.
+
+<br>
+
+Below you can see a video of the duckiebot moving around the world using lane following. Our sensor fusion node attempts to teleport the robot if an apriltag is found and to use odometry if no apriltag is detected. Our goal is to finish as close to the start as possible. 
+
+**Video here**
+
+<br>
+
+**Is this a perfect System?**
+
+answer
+
+<br>
+
+**What are the causes for some of the errors?**
+
+answer
+
+<br>
+
+**What other approaches could you use to improve localization?**
+
+answer
+
+<br>
+
 
 ## References
 ---
