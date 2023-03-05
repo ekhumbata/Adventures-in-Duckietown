@@ -2,7 +2,9 @@
 
 ## TL;DR
 
-Text for tldr will go here
+In this lab we accomplished a lot! We used OpenCV to be able to read and ID apriltags which we then used to help move the Duckiebot using lane following and landmark recognition. We also utilized RViz to view where the Duckiebot thought it was in the robot frame compared to the world frame as well visualize the previous apriltag detections.
+
+<br>
 
 ## Part 1
 ---
@@ -107,7 +109,9 @@ answer
 
 <br>
 
-Below you can see view from RViz as we do a lap around the track. The camera feed, odometry frame and static apriltag frame is shown.
+Below you can see view from RViz as we do a lap around the track. The camera feed, odometry frame and static apriltag frame is shown. In this video, the moving object is our Duckiebot being controlled manually. The static objects shown are the apriltags in our world frame.
+
+<br>
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/YbNmJU6vKUY" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.1: Video for part 2 demonstration</b></figcaption>
@@ -242,4 +246,6 @@ answer
 [CMPUT 412 Cheat Sheet](https://docs.google.com/document/d/1bQfkR_tmwctFozEZlZkmojBZHkegscJPJVuw-IEXwI4/edit#)
 
 [Duckietown Docs](https://docs.duckietown.org/daffy/)
+
+[OpenCV Docs](https://docs.opencv.org/4.x/)
 
