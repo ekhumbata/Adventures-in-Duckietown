@@ -109,7 +109,8 @@ answer
 
 Below you can see view from RViz as we do a lap around the track. The camera feed, odometry frame and static apriltag frame is shown.
 
-**Video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/YbNmJU6vKUY" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.1: Video for part 2 demonstration</b></figcaption>
 
 <br>
 
@@ -128,7 +129,10 @@ Adding the landmarks made it significantly easier! Being able to visualize where
 
 **Show the generated transform tree graph, what is the root/parent frame?**
 
-**image here**
+ <iframe src="assets/images_ex3/originalTransformTree.pdf" width="75%" height="500px"></iframe>
+<figcaption align = "center"><b>Fig.1: Original Transform Tree</b></figcaption>
+
+<br>
 
 There are currently two root frames - the first being the “{robot_name}/WorldFrame” frame that we created for the odometry and apriltag locations. The second was the “{robot_name} footprint” frame that contained all of the components of the bot are children of. It made sense to set the parent of the footprint frame to be the odometry frame, since we then would be able to visualize all components of the robot relative to the apriltag locations.
 
@@ -172,7 +176,10 @@ It can, but it is highly recommended not to. Issue visualizing in RViz will occu
 
 **Show the newly generated transform tree graph, what is the new root/parent frame?**
 
-**image here**
+<iframe src="assets/images_ex3/newTransformTree.pdf" width="75%" height="500px"></iframe>
+<figcaption align = "center"><b>Fig.1: New Transform Tree</b></figcaption>
+
+<br>
 
 The new parent frame shown on the transform tree graph is footprint - but in reality the root is “WorldFrame”. You can imagine just drawing a connection between “odometry” and “footprint” in **Enter figure number here!** - this is the true new tree.
 
@@ -236,4 +243,3 @@ answer
 
 [Duckietown Docs](https://docs.duckietown.org/daffy/)
 
-[Markdown Syntax](https://bookdown.org/yihui/rmarkdown/markdown-syntax.html#)
