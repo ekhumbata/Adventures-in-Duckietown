@@ -3,7 +3,6 @@
 ## TL;DR
 
 In this lab we accomplished a lot! We used OpenCV to be able to read and ID apriltags which we then used to help move the Duckiebot using lane following and landmark recognition. We also utilized RViz to view where the Duckiebot thought it was in the robot frame compared to the world frame as well visualize the previous apriltag detections.
-
 <br>
 
 ## Part 1
@@ -12,9 +11,9 @@ In this lab we accomplished a lot! We used OpenCV to be able to read and ID apri
 
 <br>
 
-Below you can see a video of the duckiebot detecting the apriltags. When this first started working, it was incredibly cool to see!
+Below you can see a video of the Duckiebot detecting the apriltags. When this first started working, it was incredibly cool to see!
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/YIe9p3hPaqw" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/fT2It-2V_pQ" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.1: Video for apriltag detection</b></figcaption>
 
 <br>
@@ -38,7 +37,11 @@ As stated in the above picture, apriltag detections will increase on the *Z* and
 
 **What frame orientation does the apriltag use?**
 
-<u>not sure about this question</u>
+The camera frame is a translation and rotations away from the base of the robot frame so things change a little differently. 
+
+Skimming over some of the nuance of the camera being pointed down a bit, as the robot moves towards positive X in the robot frame, the apriltag gets closer - or the position in Z in the camera frame decreases.
+
+If the robot rotates right, the apriltag detection will move towards negative x in the robot frame and vice-versa
 
 The frame orientation can be found using the right hand rule. Utilizing the RHR, we are able to see a frame orientation similar to Fig.1 
 
@@ -50,14 +53,14 @@ Detections from far away can be prone to error due to a few reasons:
 
 - The angle of the camera: Since the camera is tilted down, some distortion can occur when trying to detect tags
 - The field of view: With a wide field of view an image can look distorted when compared to a smaller FOV
-- The physical camera: The physical camera equipped on the duckiebot is not the best quality. It also has a slight fisheye lens which can cause added distortion
+- The physical camera: The physical camera equipped on the Duckiebot is not the best quality. It also has a slight fisheye lens which can cause added distortion
 
 
 <br>
 
 **Why may you want to limit the rate of detections?**
 
-Since our duckiebot is not equipped with very much onboard memory, it can get easily overloaded by trying to detect many objects in a small period of time. By limiting the number of detections, we can increase our operating efficeny and also speed up subsequent detections. 
+Since our Duckiebot is not equipped with very much onboard memory, it can get easily overloaded by trying to detect many objects in a small period of time. By limiting the number of detections, we can increase our operating efficeny and also speed up subsequent detections. 
 
 <br>
 
@@ -67,14 +70,14 @@ Since our duckiebot is not equipped with very much onboard memory, it can get ea
 
 <br>
 
-Below you can see a video of the duckiebot utilizing the PID controller and lane following <u>American</u> driver style.
+Below you can see a video of the Duckiebot utilizing the PID controller and lane following <u>American</u> driver style.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/p1k3Xm_qgXU" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.2: Video for American style driver</b></figcaption>
 
 <br>
 
-Below you can see a video of the duckiebot utilizing the PID controller and lane following <u>English</u> driver style.
+Below you can see a video of the Duckiebot utilizing the PID controller and lane following <u>English</u> driver style.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/xrq4UWQTJRE" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.3: Video for English style driver</b></figcaption>
@@ -82,10 +85,10 @@ Below you can see a video of the duckiebot utilizing the PID controller and lane
 <br>
 
 For both of the above videos, there are a few subtlties to take note of:
-- A vertical blue line down the centre of the screen to visualize the centre of the camera on the duckiebot
+- A vertical blue line down the centre of the screen to visualize the centre of the camera on the Duckiebot
 - Green rectangles to track the closest lane segment. If two rectangles are present, the closest one is ignored
 - A green line connecting the green square to the vertical blue line to visualize approximately how far off we are from centre
-- A red dot rapidly moving around the screen to visualize how much rotation the duckiebot must make to stay on the correct side of the road
+- A red dot rapidly moving around the screen to visualize how much rotation the Duckiebot must make to stay on the correct side of the road
 
 <br>
 
@@ -101,7 +104,7 @@ $$
 where:
 - $x$ = the left most side of the closest dotted line
 - $y$ = the top of closest dotted line divided by two
-- $sizeratio$ = handles distance distortion. It creats a linear function describing how close the dotted line is vs how close the duckiebot should be to it. This address the vanishing point problem. 
+- $sizeratio$ = handles distance distortion. It creats a linear function describing how close the dotted line is vs how close the Duckiebot should be to it. This address the vanishing point problem. 
 - $goal$ = where the bot wants to be. Represented by a blue vertical line in the image
 - $pixelscale$ = scales the error down to account for large error in pixels realative to a small error in angle
 
@@ -156,7 +159,7 @@ Adding the landmarks made it significantly easier! Being able to visualize where
 **Show the generated transform tree graph, what is the root/parent frame?**
 
  <iframe src="assets/images_ex3/originalTransformTree.pdf" width="75%" height="500px"></iframe>
-<figcaption align = "center"><b>Fig.1: Original transform tree</b></figcaption>
+<figcaption align = "center"><b>Fig.2: Original transform tree</b></figcaption>
 
 <br>
 
@@ -170,9 +173,9 @@ To determine this, first we set footprint's parent frame to be the odometry fram
 
 <br>
 
-**You may notice that the wheel frames rotate when you rotate the wheels, but the frames never move from the origin? Even if you launch your odometry node the duckiebot’s frames do not move. Why is that?**
+**You may notice that the wheel frames rotate when you rotate the wheels, but the frames never move from the origin? Even if you launch your odometry node the Duckiebot’s frames do not move. Why is that?**
 
-This was due to the two root nodes. We could set RViz to show the footprint of the duckiebot OR show the WorldFrame with the odometry node. We need to connect the footprint to the odometry node for this to link properly.
+This was due to the two root nodes. We could set RViz to show the footprint of the Duckiebot OR show the WorldFrame with the odometry node. We need to connect the footprint to the odometry node for this to link properly.
 
 <br>
 
@@ -203,7 +206,7 @@ It can, but it is highly recommended not to. Issue visualizing in RViz will occu
 **Show the newly generated transform tree graph, what is the new root/parent frame?**
 
 <iframe src="assets/images_ex3/newTransformTree.pdf" width="75%" height="500px"></iframe>
-<figcaption align = "center"><b>Fig.1: New transform tree</b></figcaption>
+<figcaption align = "center"><b>Fig.3: New transform tree</b></figcaption>
 
 <br>
 
@@ -211,7 +214,7 @@ The new parent frame shown on the transform tree graph is footprint - but in rea
 
 <br>
 
-Below you can see a video of the duckiebot moving around the world frame with all robot frames attached to the moving odometry frame. Apriltag detections are also shown in the camera feed and visualized in RViz.
+Below you can see a video of the Duckiebot moving around the world frame with all robot frames attached to the moving odometry frame. Apriltag detections are also shown in the camera feed and visualized in RViz.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/gwi9RyucWMo" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.5: Localization using dynamic apriltags </b></figcaption>
@@ -220,7 +223,7 @@ Below you can see a video of the duckiebot moving around the world frame with al
 
 **How far off are your detections from the static ground truth?**
 
-answer
+As seen in Vid.5, our detections are not incredibly accurate. Being able to see the physical location of the apriltags on the camera as well as the perceived location on RViz lets us know we have a bit of work to do on detections
 
 <br>
 
@@ -231,27 +234,29 @@ answer
 
 <br>
 
-Below you can see a video of the duckiebot moving around the world using lane following. Our sensor fusion node attempts to teleport the robot if an apriltag is found and to use odometry if no apriltag is detected. Our goal is to finish as close to the start as possible. 
+In the future we will add a video here of the Duckiebot moving around the world using lane following. Our sensor fusion node attempts to teleport the robot if an apriltag is found and to use odometry if no apriltag is detected. Our goal is to finish as close to the start as possible. 
 
-**Video here**
+**Is this a perfect system?**
 
-<br>
-
-**Is this a perfect System?**
-
-answer
+While this isn't a perfect system, it is not bad. By using apriltag teleportation with a combination of dead reckoning and computer vision, we can get a fairly good lane following system. There are some definite improvements and tweaks we hope to make in the future. 
 
 <br>
 
 **What are the causes for some of the errors?**
 
-answer
+Some causes for the error include:
+- Memory usage on the Duckiebot: In some scenarios, the Duckiebot seems to get a little bit overloaded and not have enough processing power to compute all the commands given to it at one time. When running manual control + RViz, we noticed some significant delay.
+- Human tuning: Since we are tuning some constants by hand/inspection, the values are not optimal. Possibly by using machine learning we could fix this problem.
+- Unaccounted distortion on camera: This can cause inaccuracies with our apriltag detections and our lane following.
 
 <br>
 
 **What other approaches could you use to improve localization?**
 
-answer
+To improve localization we could:
+- Use multiple sensors or improved sensors. By using signals like GPS we can have a more accurate reading of where we are
+- Use machine learning. By training our bot we can have it better estimate it's position
+- Combination approach. By using a combination of improved sensors, machine learning, better data etc we can improve our localization by a large magnitude. 
 
 <br>
 
