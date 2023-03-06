@@ -92,25 +92,36 @@ For both of the above videos, there are a few subtlties to take note of:
 
 **What is the error for your PID controller?**
 
-answer
+This error is found by the following general equation:
+$$\begin{equation}
+error = (x + (sizeratio*y)) - goal) * pixelscale
+\end{equation}
+$$
+
+where:
+- $x$ = the left most side of the closest dotted line
+- $y$ = the top of closest dotted line divided by two
+- $sizeratio$ = handles distance distortion. It creats a linear function describing how close the dotted line is vs how close the duckiebot should be to it. This address the vanishing point problem. 
+- $goal$ = where the bot wants to be. Represented by a blue vertical line in the image
+- $pixelscale$ = scales the error down to account for large error in pixels realative to a small error in angle
 
 <br>
 
 **If your proportional controller did not work well alone, what could have caused this?**
 
-answer
+For our purposes a proportional controller worked well. If our system contained momentum, this could have caused overshoot. However, adding a derivative term and accounting for derivative kick could solve the momentum problem.
 
 <br>
 
 **Does the D term help your controller logic? Why or why not?**
 
-answer
+Currently it does not help our controller since we did not have time to use it. Since our system does not consider a force like momentum, the P term is more than sufficent. 
 
 <br>
 
-**(Optional) Why or why not was the I term useful for your robot?**
+**Why or why not was the I term useful for your robot?**
 
-answer
+While we did not implement the I term into this project it could have potentially been useful. Since the I term tries to compensate for error over time this could be useful when there is some error in the wheel encoders or slippage on the mat. If we did consider using an I term, we would also have to be wary of integral windup. To combat this, we would limit how large the I term could be.
 
 <br>
 
