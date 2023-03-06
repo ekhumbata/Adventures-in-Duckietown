@@ -14,7 +14,8 @@ In this lab we accomplished a lot! We used OpenCV to be able to read and ID apri
 
 Below you can see a video of the duckiebot detecting the apriltags. When this first started working, it was incredibly cool to see!
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/YIe9p3hPaqw" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.1: Video for apriltag detection</b></figcaption>
 
 <br>
 
@@ -68,38 +69,59 @@ Since our duckiebot is not equipped with very much onboard memory, it can get ea
 
 Below you can see a video of the duckiebot utilizing the PID controller and lane following <u>American</u> driver style.
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/p1k3Xm_qgXU" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.2: Video for American style driver</b></figcaption>
 
 <br>
 
 Below you can see a video of the duckiebot utilizing the PID controller and lane following <u>English</u> driver style.
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/xrq4UWQTJRE" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.3: Video for English style driver</b></figcaption>
+
+<br>
+
+For both of the above videos, there are a few subtlties to take note of:
+- A vertical blue line down the centre of the screen to visualize the centre of the camera on the duckiebot
+- Green rectangles to track the closest lane segment. If two rectangles are present, the closest one is ignored
+- A green line connecting the green square to the vertical blue line to visualize approximately how far off we are from centre
+- A red dot rapidly moving around the screen to visualize how much rotation the duckiebot must make to stay on the correct side of the road
 
 <br>
 
 
 **What is the error for your PID controller?**
 
-answer
+This error is found by the following general equation:
+$$\begin{equation}
+error = (x + (sizeratio*y)) - goal) * pixelscale
+\end{equation}
+$$
+
+where:
+- $x$ = the left most side of the closest dotted line
+- $y$ = the top of closest dotted line divided by two
+- $sizeratio$ = handles distance distortion. It creats a linear function describing how close the dotted line is vs how close the duckiebot should be to it. This address the vanishing point problem. 
+- $goal$ = where the bot wants to be. Represented by a blue vertical line in the image
+- $pixelscale$ = scales the error down to account for large error in pixels realative to a small error in angle
 
 <br>
 
 **If your proportional controller did not work well alone, what could have caused this?**
 
-answer
+For our purposes a proportional controller worked well. If our system contained momentum, this could have caused overshoot. However, adding a derivative term and accounting for derivative kick could solve the momentum problem.
 
 <br>
 
 **Does the D term help your controller logic? Why or why not?**
 
-answer
+Currently it does not help our controller since we did not have time to use it. Since our system does not consider a force like momentum, the P term is more than sufficent. 
 
 <br>
 
-**(Optional) Why or why not was the I term useful for your robot?**
+**Why or why not was the I term useful for your robot?**
 
-answer
+While we did not implement the I term into this project it could have potentially been useful. Since the I term tries to compensate for error over time this could be useful when there is some error in the wheel encoders or slippage on the mat. If we did consider using an I term, we would also have to be wary of integral windup. To combat this, we would limit how large the I term could be.
 
 <br>
 
@@ -114,7 +136,7 @@ Below you can see view from RViz as we do a lap around the track. The camera fee
 <br>
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/YbNmJU6vKUY" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-<figcaption align = "center"><b>Vid.1: Video for part 2 demonstration</b></figcaption>
+<figcaption align = "center"><b>Vid.4: Video for part 2 demonstration</b></figcaption>
 
 <br>
 
@@ -134,7 +156,7 @@ Adding the landmarks made it significantly easier! Being able to visualize where
 **Show the generated transform tree graph, what is the root/parent frame?**
 
  <iframe src="assets/images_ex3/originalTransformTree.pdf" width="75%" height="500px"></iframe>
-<figcaption align = "center"><b>Fig.1: Original Transform Tree</b></figcaption>
+<figcaption align = "center"><b>Fig.1: Original transform tree</b></figcaption>
 
 <br>
 
@@ -181,7 +203,7 @@ It can, but it is highly recommended not to. Issue visualizing in RViz will occu
 **Show the newly generated transform tree graph, what is the new root/parent frame?**
 
 <iframe src="assets/images_ex3/newTransformTree.pdf" width="75%" height="500px"></iframe>
-<figcaption align = "center"><b>Fig.1: New Transform Tree</b></figcaption>
+<figcaption align = "center"><b>Fig.1: New transform tree</b></figcaption>
 
 <br>
 
