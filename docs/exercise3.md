@@ -135,8 +135,8 @@ Below you can see view from RViz as we do a lap around the track. The camera fee
 
 <br>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/YbNmJU6vKUY" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-<figcaption align = "center"><b>Vid.4: Video for part 2 demonstration</b></figcaption>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/l8UcIMxtJF0" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.4: Localization using static apriltags</b></figcaption>
 
 <br>
 
@@ -213,7 +213,8 @@ The new parent frame shown on the transform tree graph is footprint - but in rea
 
 Below you can see a video of the duckiebot moving around the world frame with all robot frames attached to the moving odometry frame. Apriltag detections are also shown in the camera feed and visualized in RViz.
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/gwi9RyucWMo" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.5: Localization using dynamic apriltags </b></figcaption>
 
 <br>
 
