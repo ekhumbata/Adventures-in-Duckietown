@@ -29,7 +29,7 @@ class lane_follow_node(DTROS):
         self.lower_bound = np.array([20, 45, 25])
         self.upper_bound = np.array([35, 255, 255]) 
         # drive speed and ratio of goal vs distance from bot
-        self.drive = True
+        self.drive = False
         self.speed = 0.3
         self.omega = 0
         self.size_ratio = 0.8   #distance from centre of duckiebot to dotted line

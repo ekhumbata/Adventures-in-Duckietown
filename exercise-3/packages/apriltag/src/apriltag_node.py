@@ -53,6 +53,9 @@ class apriltag_node(DTROS):
             93: "GREEN"
         }
 
+        self.p = 0
+        self.q = 0
+
 
 
         # subscribers
@@ -65,6 +68,7 @@ class apriltag_node(DTROS):
         # self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage, queue_size=10)
         self.pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/grey_img/compressed', CompressedImage, queue_size=1)
         self.pub_led = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + "/led_emitter_node/led_pattern", LEDPattern, queue_size=1)
+        self.pub_april = rospy.Publisher("/april_topic", String, queue_size=1)
 
         # services 
         # led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
@@ -150,6 +154,13 @@ class apriltag_node(DTROS):
             set_led_cmd.rgb_vals.append(rgba)
 
         self.pub_led.publish(set_led_cmd)
+
+    def april_pub(self):
+        msg = String()
+        msg.data = f"{self.p}:{self.q}"
+        print("april", msg.data)
+
+        self.pub_april.publish(msg)
 
 
     def change_led_to(self, new_col):
@@ -263,16 +274,16 @@ class apriltag_node(DTROS):
 
 
             # turn rotation matrix into quaternion
-            q = self._matrix_to_quaternion(tag.pose_R)
-            p = tag.pose_t.T[0]
+            self.q = self._matrix_to_quaternion(tag.pose_R)
+            self.p = tag.pose_t.T[0]
 
             # print("p:", p, "q:", q)
         
 
             # publish tf
             self._tf_bcaster.sendTransform(
-                p.tolist(),
-                q.tolist(),
+                self.p.tolist(),
+                self.q.tolist(),
                 self.curr_msg.header.stamp,
                 "tag/{:s}".format(str(tag.tag_id)),
                 self.curr_msg.header.frame_id,
@@ -420,6 +431,6 @@ if __name__ == '__main__':
         # node.img_pub()
         node.change_led_to(node.curr_col)
         node.detect_tag()
-
+        node.april_pub()
         rate.sleep()
     

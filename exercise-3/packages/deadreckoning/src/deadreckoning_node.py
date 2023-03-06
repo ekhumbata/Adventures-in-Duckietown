@@ -12,6 +12,7 @@ from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import WheelEncoderStamped
 from tf2_ros import TransformBroadcaster
 
+from std_msgs.msg import String
 from tf import transformations as tr
 
 
@@ -78,6 +79,7 @@ class DeadReckoningNode(DTROS):
         # Setup subscribers
         self.sub_encoder_left = message_filters.Subscriber("~left_wheel", WheelEncoderStamped)
         self.sub_encoder_right = message_filters.Subscriber("~right_wheel", WheelEncoderStamped)
+        self.sub_april = rospy.Subscriber("/april_topic", String, self.cb_april, queue_size = 1)
 
         # Setup the time synchronizer
         self.ts_encoders = message_filters.ApproximateTimeSynchronizer(
@@ -98,6 +100,37 @@ class DeadReckoningNode(DTROS):
         #self.teleport_odometry(0.32, 1.58, 1.57079632679)
 
         self.loginfo("Initialized")
+
+    def euler_from_quaternion(self, x, y, z, w):
+        """
+        Convert a quaternion into euler angles (roll, pitch, yaw)
+        roll is rotation around x in radians (counterclockwise)
+        pitch is rotation around y in radians (counterclockwise)
+        yaw is rotation around z in radians (counterclockwise)
+        """
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y * y)
+        roll_x = math.atan2(t0, t1)
+     
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitch_y = math.asin(t2)
+     
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yaw_z = math.atan2(t3, t4)
+     
+        return roll_x, pitch_y, yaw_z # in radians
+
+    def cb_april(self, msg):
+        s = msg.data
+        p, q = s.split(":")
+        print("dead", p, q)
+        p = p.split()
+        q = q.split()
+        e = self.euler_from_quaternion(float(q[1][1:]), float(q[2]), float(q[3]), float(q[4][:-2]))
+        self.teleport_odometry(0.075 - float(p[1]), 1.755 - float(p[2]), e[2])
 
     def cb_ts_encoders(self, left_encoder, right_encoder):
         timestamp_now = rospy.get_time()
@@ -162,10 +195,8 @@ class DeadReckoningNode(DTROS):
         print(dist , dyaw)
 
         self.yaw = self.angle_clamp(self.yaw + dyaw)
-        print("xY1", self.x, self.y)
         self.x = self.x + dist * math.cos(self.yaw)
         self.y = self.y + dist * math.sin(self.yaw)
-        print("xY2", self.x, self.y)
         self.q = tr.quaternion_from_euler(0, 0, self.yaw)
         self.timestamp = timestamp
 
