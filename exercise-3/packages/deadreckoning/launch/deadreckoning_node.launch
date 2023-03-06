@@ -22,7 +22,7 @@
         
 
         <!-- static locs for apriltags                                                    x y z roll yaw pitch  Parent Name-->
-        <node pkg="tf2_ros" type="static_transform_publisher" name="at_200_static" args="0.17  0.17  0.18  0.78539816339 0 -1.57079632679 $(arg veh)/WorldFrame at_200_static"/>
+        <node pkg="tf2_ros" type="static_transform_publisher" name="at_200_static" args="0.17  0.17  0.18  2.35619449019 0 -1.57079632679 $(arg veh)/WorldFrame at_200_static"/>
         <node pkg="tf2_ros" type="static_transform_publisher" name="at_201_static" args="1.65  0.17  0.18  2.35619449019 0 -1.57079632679 $(arg veh)/WorldFrame at_201_static"/>
         <node pkg="tf2_ros" type="static_transform_publisher" name="at_58_static"  args="0.574 1.259 0.18 -1.57079632679 0 -1.57079632679 $(arg veh)/WorldFrame at_58_static" />
         <node pkg="tf2_ros" type="static_transform_publisher" name="at_162_static" args="1.253 1.253 0.18  3.14159265359 0 -1.57079632679 $(arg veh)/WorldFrame at_162_static"/>

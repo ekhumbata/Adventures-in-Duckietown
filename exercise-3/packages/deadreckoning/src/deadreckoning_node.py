@@ -95,7 +95,7 @@ class DeadReckoningNode(DTROS):
         # tf broadcaster for odometry TF
         self._tf_broadcaster = TransformBroadcaster()
 
-        self.teleport_odometry(0.32, 1.58, 1.57079632679)
+        #self.teleport_odometry(0.32, 1.58, 1.57079632679)
 
         self.loginfo("Initialized")
 
@@ -159,10 +159,13 @@ class DeadReckoningNode(DTROS):
 
         dist = self.tv * dt
         dyaw = self.rv * dt
+        print(dist , dyaw)
 
         self.yaw = self.angle_clamp(self.yaw + dyaw)
+        print("xY1", self.x, self.y)
         self.x = self.x + dist * math.cos(self.yaw)
         self.y = self.y + dist * math.sin(self.yaw)
+        print("xY2", self.x, self.y)
         self.q = tr.quaternion_from_euler(0, 0, self.yaw)
         self.timestamp = timestamp
 
@@ -205,6 +208,8 @@ class DeadReckoningNode(DTROS):
         odom.twist.twist = Twist(Vector3(self.tv, 0.0, 0.0), Vector3(0.0, 0.0, self.rv))
 
         self.pub.publish(odom)
+
+        print(self.x, self.y, self.z)
 
         self._tf_broadcaster.sendTransform(
             TransformStamped(

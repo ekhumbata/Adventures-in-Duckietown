@@ -32,7 +32,7 @@ class lane_follow_node(DTROS):
         self.drive = True
         self.speed = 0.2
         self.omega = 0
-        self.size_ratio = 0.9
+        self.size_ratio = 0.8
 
         self.prev_time = 0
         self.prev_diff = None
@@ -112,16 +112,16 @@ class lane_follow_node(DTROS):
 
     def pid(self, x, y, goal):
         # proprtional part
-        diff = ((x + int((self.size_ratio*y))) - goal) * 0.01
+        diff = ((x + int((self.size_ratio * y))) - goal) * 0.05
         self.omega = -self.PID[0] * diff
 
         # derivative part
-        curr_time = rospy.get_time()
-        dt = curr_time - self.prev_time
-        self.prev_time = curr_time
-        if self.prev_diff != None:
-            self.omega += self.PID[2] * (diff - self.prev_diff) / dt
-        self.prev_diff = diff
+        # curr_time = rospy.get_time()
+        # dt = curr_time - self.prev_time
+        # self.prev_time = curr_time
+        # if self.prev_diff != None:
+        #     self.omega += self.PID[2] * (diff - self.prev_diff) / dt
+        # self.prev_diff = diff
 
         # integral part?
 

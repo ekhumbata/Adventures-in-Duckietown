@@ -29,6 +29,10 @@ class apriltag_node(DTROS):
         self._tf_bcaster = tf.TransformBroadcaster()
 
         self.grey_img = np.array([])
+        self.col_img = None
+        self.curr_msg = None
+        self.detector = dt_apriltags.Detector()
+
         self.run = True
         self.prev_img = None
         #no detection
@@ -120,10 +124,9 @@ class apriltag_node(DTROS):
         data_arr = np.frombuffer(msg.data, np.uint8)
         col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
         grey_img = cv2.cvtColor(col_img, cv2.COLOR_BGR2GRAY)
-        self.grey_img = grey_img
-
-        self.detect_tag(col_img, msg)
-
+        self.grey_img = grey_img[1* len(col_img) // 4 : 2 * len(col_img) // 3]
+        self.col_img = col_img[1 * len(col_img) // 4 : 2 * len(col_img) // 3]
+        self.curr_msg = msg
 
     def img_pub(self):
         if self.grey_img.any():
@@ -189,16 +192,16 @@ class apriltag_node(DTROS):
         return tf.transformations.quaternion_from_matrix(T)
 
 
-    def detect_tag(self, img, msg):
+    def detect_tag(self):
         if(not self.safeToRunProgram):
             return
 
 
         # convert the img to greyscale
+        img =  self.col_img
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        detector = dt_apriltags.Detector()
-        tags = detector.detect(gray, True, self.camera_parameters, self.tag_size)
+
+        tags = self.detector.detect(gray, True, self.camera_parameters, self.tag_size)
 
         print("[INFO] {} total AprilTags detected".format(len(tags)))
 
@@ -270,9 +273,9 @@ class apriltag_node(DTROS):
             self._tf_bcaster.sendTransform(
                 p.tolist(),
                 q.tolist(),
-                msg.header.stamp,
+                self.curr_msg.header.stamp,
                 "tag/{:s}".format(str(tag.tag_id)),
-                msg.header.frame_id,
+                self.curr_msg.header.frame_id,
             )
 
         # change the led based on the tag id
@@ -333,8 +336,7 @@ class apriltag_node(DTROS):
         # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # # define the AprilTags detector options and then detect the AprilTags in the input image
-        # detector = dt_apriltags.Detector()
-        # results = detector.detect(gray)
+        # results = self.detector.detect(gray)
         # print("[INFO] {} total AprilTags detected".format(len(results)))
 
         # for i in results:
@@ -417,5 +419,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown() and node.run:
         # node.img_pub()
         node.change_led_to(node.curr_col)
+        node.detect_tag()
+
         rate.sleep()
     
