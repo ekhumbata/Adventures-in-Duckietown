@@ -30,9 +30,9 @@ class lane_follow_node(DTROS):
         self.upper_bound = np.array([35, 255, 255]) 
         # drive speed and ratio of goal vs distance from bot
         self.drive = True
-        self.speed = 0.2
+        self.speed = 0.3
         self.omega = 0
-        self.size_ratio = 0.9
+        self.size_ratio = 0.8   #distance from centre of duckiebot to dotted line
 
         self.prev_time = 0
         self.prev_diff = None
@@ -89,7 +89,9 @@ class lane_follow_node(DTROS):
 
         # if only move the bot if drive is true
         if self.drive:
-            self.pid(x, y + h//2, len(image[i]) // 2) # set this to y - h//2 for english driver mode
+            # set this to y - h//2 for english driver mode
+            # set this to y + h//2 for american driver mode
+            self.pid(x, y + h//2, len(image[i]) // 2) 
         
 
     def img_pub(self):
@@ -112,7 +114,8 @@ class lane_follow_node(DTROS):
 
     def pid(self, x, y, goal):
         # proprtional part
-        diff = ((x + int((self.size_ratio*y))) - goal) * 0.01
+        scale_for_pixel_area = 0.02
+        diff = ((x + int((self.size_ratio*y))) - goal) * scale_for_pixel_area  
         self.omega = -self.PID[0] * diff
 
         # derivative part

@@ -14,7 +14,8 @@ In this lab we accomplished a lot! We used OpenCV to be able to read and ID apri
 
 Below you can see a video of the duckiebot detecting the apriltags. When this first started working, it was incredibly cool to see!
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/YIe9p3hPaqw" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.1: Video for apriltag detection</b></figcaption>
 
 <br>
 
@@ -68,13 +69,23 @@ Since our duckiebot is not equipped with very much onboard memory, it can get ea
 
 Below you can see a video of the duckiebot utilizing the PID controller and lane following <u>American</u> driver style.
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/p1k3Xm_qgXU" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.2: Video for American style driver</b></figcaption>
 
 <br>
 
 Below you can see a video of the duckiebot utilizing the PID controller and lane following <u>English</u> driver style.
 
-**video here!**
+<iframe width="560" height="315" src="https://www.youtube.com/embed/xrq4UWQTJRE" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<figcaption align = "center"><b>Vid.3: Video for English style driver</b></figcaption>
+
+<br>
+
+For both of the above videos, there are a few subtlties to take note of:
+- A vertical blue line down the centre of the screen to visualize the centre of the camera on the duckiebot
+- Green rectangles to track the closest lane segment. If two rectangles are present, the closest one is ignored
+- A green line connecting the green square to the vertical blue line to visualize approximately how far off we are from centre
+- A red dot rapidly moving around the screen to visualize how much rotation the duckiebot must make to stay on the correct side of the road
 
 <br>
 
@@ -114,7 +125,7 @@ Below you can see view from RViz as we do a lap around the track. The camera fee
 <br>
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/YbNmJU6vKUY" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-<figcaption align = "center"><b>Vid.1: Video for part 2 demonstration</b></figcaption>
+<figcaption align = "center"><b>Vid.4: Video for part 2 demonstration</b></figcaption>
 
 <br>
 
@@ -134,7 +145,7 @@ Adding the landmarks made it significantly easier! Being able to visualize where
 **Show the generated transform tree graph, what is the root/parent frame?**
 
  <iframe src="assets/images_ex3/originalTransformTree.pdf" width="75%" height="500px"></iframe>
-<figcaption align = "center"><b>Fig.1: Original Transform Tree</b></figcaption>
+<figcaption align = "center"><b>Fig.1: Original transform tree</b></figcaption>
 
 <br>
 
@@ -181,7 +192,7 @@ It can, but it is highly recommended not to. Issue visualizing in RViz will occu
 **Show the newly generated transform tree graph, what is the new root/parent frame?**
 
 <iframe src="assets/images_ex3/newTransformTree.pdf" width="75%" height="500px"></iframe>
-<figcaption align = "center"><b>Fig.1: New Transform Tree</b></figcaption>
+<figcaption align = "center"><b>Fig.1: New transform tree</b></figcaption>
 
 <br>
 
