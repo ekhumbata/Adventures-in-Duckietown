@@ -43,7 +43,7 @@ class lane_follow_node(DTROS):
         # how much each PID param effects change in omega
         self.PID = [1, 1, 0]
 
-        
+        self.col = String()
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
@@ -94,7 +94,9 @@ class lane_follow_node(DTROS):
         #return 
         return x, y, w, h, conts
         
-
+    def change_led_col(self, col):
+        self.col.data = col
+        self.change_led(self.col)
 
     def cb_img(self, msg):
         # get the image from camera and mask over the hsv range set in init
@@ -108,12 +110,18 @@ class lane_follow_node(DTROS):
         yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
+        # Stop driving driving
         if red_y > 200 and self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 5:
+            self.change_led_col("RED")
+
             self.drive = False
             self.prev_omega = self.omega
             self.stopped_t = rospy.Time.now().to_sec()
 
+        # Start driving again
         if not self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 2:
+            self.change_led_col("GREEN")
+
             self.speed = 0.3
             self.omega = self.prev_omega
             if np.random.randint(2, size = 1)[0] == 0:
@@ -206,12 +214,6 @@ if __name__ == '__main__':
         node.img_pub()
         node.twist_pub()
         #node.change_led_to(node.curr_col)
-
-
-        # test led service
-        col = String()
-        col.data = "GREEN"
-        self.change_led(col)
 
         rate.sleep()
     
