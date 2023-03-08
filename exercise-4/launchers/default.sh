@@ -14,6 +14,7 @@ dt-launchfile-init
 
 # launching app
 dt-exec roslaunch duckiebot_detection duckiebot_detection_node.launch
+dt-exec roslaunch lane_follow lane_follow_node.launch veh:=$VEHICLE_NAME
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE

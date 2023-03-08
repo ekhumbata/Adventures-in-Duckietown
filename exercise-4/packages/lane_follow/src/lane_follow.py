@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import dt_apriltags
 import argparse
 import cv2
 
@@ -26,12 +25,13 @@ class lane_follow_node(DTROS):
         self.run = True
 
         # hsv color values to mask
-        self.lower_bound = np.array([20, 45, 25])
-        self.upper_bound = np.array([35, 255, 255]) 
+        self.yellow_upper = np.array([35, 255, 255]) 
+        self.yellow_lower = np.array([20, 45, 25])
 
-        self.red_upper = np.array([0, 100, 204])
-        self.red_lower = np.array([20, 195, 225])
+        self.red_upper = np.array([20, 255, 255])
+        self.red_lower = np.array([0, 100, 204])
         # drive speed and ratio of goal vs distance from bot
+        self.stopped_t = 0
         self.drive = False
         self.speed = 0.3
         self.omega = 0
@@ -42,7 +42,7 @@ class lane_follow_node(DTROS):
         # how much each PID param effects change in omega
         self.PID = [1, 1, 0]
 
-
+        
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
@@ -54,9 +54,14 @@ class lane_follow_node(DTROS):
         twist_topic = f"/{os.environ['VEHICLE_NAME']}/car_cmd_switch_node/cmd"
         self.twist_publisher = rospy.Publisher(twist_topic, Twist2DStamped, queue_size=1)
 
-    def lanelogic(self, imagemask, col_img,crop):
+    def lane_logic(self, imagemask):
          # find the current color in the FOV
         contours, hierarchy = cv2.findContours(imagemask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+
+        if len(contours) == 0:
+            print(contours)
+            return 0, 0, 0, 0, []
 
         # get the largest current color stripe
         largest = max(contours, key = cv2.contourArea)
@@ -64,11 +69,11 @@ class lane_follow_node(DTROS):
         conts = [largest]
         
         # ignore the largest stripe if it is too close to the bot
-        if y > 200:
-            contours.remove(largest)
-            largest = max(contours, key = cv2.contourArea)
-            conts.append(largest)
-            x,y,w,h = cv2.boundingRect(largest)
+        # if y > 200:
+        #     contours.remove(largest)
+        #     largest = max(contours, key = cv2.contourArea)
+        #     conts.append(largest)
+        #     x,y,w,h = cv2.boundingRect(largest)
         
         #return 
         return x, y, w, h, conts
@@ -81,22 +86,22 @@ class lane_follow_node(DTROS):
         col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
         crop = [len(col_img) // 3, -1]
         hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
-        yellow_imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound)) #get yellow boxes
+        yellow_imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.yellow_lower, self.yellow_upper)) #get yellow boxes
         red_imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.red_lower, self.red_upper)) #get red boxes
 
-        yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lanelogic(yellow_imagemask,col_img,crop)
-        red_x, red_y, red_w, red_h, red_conts = self.lanelogic(red_imagemask,col_img,crop)
+        yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
+        red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
         if red_y > 200 and self.drive:
             self.drive = False
-            self.stopped_t = rospy.Time.now().to_secs()
+            self.stopped_t = rospy.Time.now().to_sec()
 
-        if not self.drive and rospy.Time.now().to_secs() - self.stopped_t >= 2:
+        if not self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 2:
             self.speed = 0.3
             self.omega = 0
-            if np.randint(2, size = 1)[0] == 0:
+            if np.random.randint(2, size = 1)[0] == 0:
                 self.omega = -np.pi / 4
-            self.drive = True
+            #self.drive = True
 
         # draw visulaization stuff for red stop
         image = cv2.drawContours(col_img[crop[0] : crop[1]], red_conts, -1, (45, 227, 224), 3)
@@ -116,7 +121,7 @@ class lane_follow_node(DTROS):
             image[i][len(image[i]) // 2] = [255, 0, 0]
 
         #yellow publisher
-        self.pub_img = image
+        #self.pub_img = image
 
         # if only move the bot if drive is true
         if self.drive:
