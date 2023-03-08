@@ -1,0 +1,12 @@
+
+<launch>
+
+  <group ns="$(arg veh)">  
+
+    <node pkg="apriltag" type="apriltag_node.py" name="apriltag_node" output="screen"/>
+    <!-- <node pkg="apriltag" type="lane_follow.py" name="lane_follow_node" output="screen"/> -->
+    <!-- <node pkg="my_package" type="my_subscriber_node.py" name="my_subscriber_node"  output="screen"/> -->
+
+  </group>
+
+</launch>
