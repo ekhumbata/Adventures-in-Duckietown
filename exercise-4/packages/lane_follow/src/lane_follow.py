@@ -32,7 +32,8 @@ class lane_follow_node(DTROS):
         self.red_lower = np.array([0, 100, 204])
         # drive speed and ratio of goal vs distance from bot
         self.stopped_t = 0
-        self.drive = False
+        self.prev_omega = 0
+        self.drive = True
         self.speed = 0.3
         self.omega = 0
         self.size_ratio = 0.8   #distance from centre of duckiebot to dotted line
@@ -99,16 +100,18 @@ class lane_follow_node(DTROS):
         yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
-        if red_y > 200 and self.drive:
+        if red_y > 200 and self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 5:
             self.drive = False
+            self.prev_omega = self.omega
             self.stopped_t = rospy.Time.now().to_sec()
 
         if not self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 2:
             self.speed = 0.3
-            self.omega = 0
+            self.omega = self.prev_omega
             if np.random.randint(2, size = 1)[0] == 0:
                 self.omega = -np.pi / 4
-            #self.drive = True
+            self.drive = True
+            self.stopped_t = rospy.Time.now().to_sec()
 
         # draw visulaization stuff for red stop
         image = cv2.drawContours(col_img[crop[0] : crop[1]], red_conts, -1, (45, 227, 224), 3)
@@ -128,7 +131,7 @@ class lane_follow_node(DTROS):
             image[i][len(image[i]) // 2] = [255, 0, 0]
 
         #yellow publisher
-        #self.pub_img = image
+        self.pub_img = image
 
         # if only move the bot if drive is true
         if self.drive:
