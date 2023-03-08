@@ -61,14 +61,6 @@ class lane_follow_node(DTROS):
         self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
 
 
-    def cb_img(self, msg):
-        # get the image from camera and mask over the hsv range set in init
-        data_arr = np.fromstring(msg.data, np.uint8)
-        col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
-        crop = [len(col_img) // 3, -1]
-        hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
-        imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
-
     def lane_logic(self, imagemask):
         # find the current color in the FOV
         contours, hierarchy = cv2.findContours(imagemask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -148,7 +140,6 @@ class lane_follow_node(DTROS):
 
        
         
-
     def img_pub(self):
         if self.pub_img is not None:
             msg = CompressedImage()
@@ -156,14 +147,15 @@ class lane_follow_node(DTROS):
             msg.format = "jpeg"
             msg.data = np.array(cv2.imencode('.jpg', self.pub_img)[1]).tostring()
 
-            # test led service
-            col = String()
-            col.data = new_col
-            self.change_led(col)
+            # # test led service
+            # col = String()
+            # col.data = "BLUE"
+            # self.change_led(col)
 
             self.img_publisher.publish(msg)
 
-    # controll the speed and angle of the bot
+
+    # control the speed and angle of the bot
     def twist_pub(self):
         if not self.drive:
             self.speed = 0
@@ -173,6 +165,7 @@ class lane_follow_node(DTROS):
         msg.omega = self.omega
 
         self.twist_publisher.publish(msg)
+
 
     def pid(self, x, y, goal):
         # proprtional part
@@ -192,6 +185,7 @@ class lane_follow_node(DTROS):
 
         print(diff, self.omega)
 
+
 if __name__ == '__main__':
     # create the node
     node = lane_follow_node(node_name='custom_lane_follow')
@@ -201,5 +195,12 @@ if __name__ == '__main__':
         node.img_pub()
         node.twist_pub()
         #node.change_led_to(node.curr_col)
+
+
+        # test led service
+        col = String()
+        col.data = "GREEN"
+        self.change_led(col)
+
         rate.sleep()
     
