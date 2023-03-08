@@ -54,6 +54,13 @@ class lane_follow_node(DTROS):
         twist_topic = f"/{os.environ['VEHICLE_NAME']}/car_cmd_switch_node/cmd"
         self.twist_publisher = rospy.Publisher(twist_topic, Twist2DStamped, queue_size=1)
 
+        # services
+        led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
+        os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
+        rospy.wait_for_service(led_topic)
+        self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
+
+
     def cb_img(self, msg):
         # get the image from camera and mask over the hsv range set in init
         data_arr = np.fromstring(msg.data, np.uint8)
@@ -103,6 +110,11 @@ class lane_follow_node(DTROS):
             msg.header.stamp = rospy.Time.now()
             msg.format = "jpeg"
             msg.data = np.array(cv2.imencode('.jpg', self.pub_img)[1]).tostring()
+
+            # test led service
+            col = String()
+            col.data = new_col
+            self.change_led(col)
 
             self.img_publisher.publish(msg)
 

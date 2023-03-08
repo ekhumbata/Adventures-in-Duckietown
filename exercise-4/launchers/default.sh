@@ -14,6 +14,7 @@ dt-launchfile-init
 
 # launching app
 dt-exec roslaunch duckiebot_detection duckiebot_detection_node.launch
+dt-exec roslaunch led_emitter led_emitter_node.launch
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
