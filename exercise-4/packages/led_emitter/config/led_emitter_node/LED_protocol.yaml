@@ -10,6 +10,7 @@ LED_protocol:
     purple: [1,0,1]
     cyan: [0,1,1]
     pink: [1,0,0.5]
+    orange: [0.9,0.5,0.2]
 
   frequencies:
     f1: &f1 1.9
@@ -28,6 +29,18 @@ LED_protocol:
     CAR_SIGNAL_SACRIFICE_FOR_PRIORITY:
       color_mask: []
       color_list: ["white","red","white","red","white"]
+      frequency_mask: [1,0,1,0,1]
+      frequency: *f1
+
+    CAR_SIGNAL_LEFT:
+      color_mask: []
+      color_list: ["orange","orange","white","white","white"]
+      frequency_mask: [1,0,1,0,1]
+      frequency: *f1
+
+    CAR_SIGNAL_RIGHT:
+      color_mask: []
+      color_list: ["white","white","white", "orange","orange"]
       frequency_mask: [1,0,1,0,1]
       frequency: *f1
 
