@@ -166,10 +166,10 @@ class lane_follow_node(DTROS):
             msg.format = "jpeg"
             msg.data = np.array(cv2.imencode('.jpg', self.pub_img)[1]).tostring()
 
-            # # test led service
-            # col = String()
-            # col.data = "BLUE"
-            # self.change_led(col)
+            # test led service
+            col = String()
+            col.data = "BLUE"
+            self.change_led(col)
 
             self.img_publisher.publish(msg)
 
@@ -214,6 +214,9 @@ if __name__ == '__main__':
         node.img_pub()
         node.twist_pub()
         #node.change_led_to(node.curr_col)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6d4b57c1499848ca05f0989dc441f3c489b482cd
         rate.sleep()
     
