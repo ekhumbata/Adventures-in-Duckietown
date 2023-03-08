@@ -62,13 +62,13 @@ class lane_follow_node(DTROS):
         self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
 
 
-    def cb_img(self, msg):
-        # get the image from camera and mask over the hsv range set in init
-        data_arr = np.fromstring(msg.data, np.uint8)
-        col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
-        crop = [len(col_img) // 3, -1]
-        hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
-        imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
+    # def cb_img(self, msg):
+    #     # get the image from camera and mask over the hsv range set in init
+    #     data_arr = np.fromstring(msg.data, np.uint8)
+    #     col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
+    #     crop = [len(col_img) // 3, -1]
+    #     hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
+    #     imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
 
     def lane_logic(self, imagemask):
         # find the current color in the FOV
