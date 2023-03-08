@@ -54,7 +54,6 @@ class lane_follow_node(DTROS):
         twist_topic = f"/{os.environ['VEHICLE_NAME']}/car_cmd_switch_node/cmd"
         self.twist_publisher = rospy.Publisher(twist_topic, Twist2DStamped, queue_size=1)
 
-<<<<<<< HEAD
         # services
         led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
         os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
@@ -70,12 +69,8 @@ class lane_follow_node(DTROS):
         hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
         imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
 
-        # find all the yellow dotted lines
-    def lanelogic(self, imagemask, col_img,crop):
-=======
     def lane_logic(self, imagemask):
->>>>>>> 9f66df3e9a3740316a29d7cbbdd8cb43061e4f74
-         # find the current color in the FOV
+        # find the current color in the FOV
         contours, hierarchy = cv2.findContours(imagemask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 
