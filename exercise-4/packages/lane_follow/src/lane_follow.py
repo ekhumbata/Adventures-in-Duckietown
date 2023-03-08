@@ -85,6 +85,17 @@ class lane_follow_node(DTROS):
         r = imy - y
         image = cv2.circle(image, (int((len(image[0]) // 2) - r * np.sin(self.omega)), int(imy - r * np.cos(self.omega))), 4, (0, 0, 255), -1)
 
+        if red_y > 200 and self.drive:
+            self.drive = False
+            self.stopped_t = rospy.Time.now().to_secs()
+
+        if not self.drive and rospy.Time.now().to_secs() - self.stopped_t >= 2:
+            self.speed = 0.3
+            self.omega = 0
+            if np.randint(2, size = 1)[0] == 0:
+                self.omega = -np.pi / 4
+            self.drive = True
+
         for i in range(len(image)):
             image[i][len(image[i]) // 2] = [255, 0, 0]
 
@@ -108,12 +119,14 @@ class lane_follow_node(DTROS):
 
     # controll the speed and angle of the bot
     def twist_pub(self):
-        if self.drive:
-            msg = Twist2DStamped()
-            msg.v = self.speed
-            msg.omega = self.omega
+        if not self.drive:
+            self.speed = 0
+            self.omega = 0
+        msg = Twist2DStamped()
+        msg.v = self.speed
+        msg.omega = self.omega
 
-            self.twist_publisher.publish(msg)
+        self.twist_publisher.publish(msg)
 
     def pid(self, x, y, goal):
         # proprtional part
