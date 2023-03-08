@@ -28,6 +28,9 @@ class lane_follow_node(DTROS):
         # hsv color values to mask
         self.lower_bound = np.array([20, 45, 25])
         self.upper_bound = np.array([35, 255, 255]) 
+
+        self.red_upper = np.array([0, 100, 204])
+        self.red_lower = np.array([20, 195, 225])
         # drive speed and ratio of goal vs distance from bot
         self.drive = False
         self.speed = 0.3
