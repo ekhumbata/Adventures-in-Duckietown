@@ -21,6 +21,7 @@ class lane_follow_node(DTROS):
         super(lane_follow_node, self).__init__(node_name=node_name, node_type=NodeType.LOCALIZATION)
         self.node_name = node_name
 
+        self.change_led = None
         self.pub_img = None
         self.run = True
 
@@ -57,9 +58,10 @@ class lane_follow_node(DTROS):
 
         # services
         led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
-        os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
+        # os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
         rospy.wait_for_service(led_topic)
         self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
+        self.change_led_col("DRIVING")
 
 
     # def cb_img(self, msg):
@@ -76,7 +78,6 @@ class lane_follow_node(DTROS):
 
 
         if len(contours) == 0:
-            print(contours)
             return 0, 0, 0, 0, []
 
         # get the largest current color stripe
@@ -98,6 +99,7 @@ class lane_follow_node(DTROS):
         self.col.data = col
         self.change_led(self.col)
 
+
     def cb_img(self, msg):
         # get the image from camera and mask over the hsv range set in init
         data_arr = np.fromstring(msg.data, np.uint8)
@@ -110,9 +112,12 @@ class lane_follow_node(DTROS):
         yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
-        # Stop driving driving
+        # Stop driving
         if red_y > 200 and self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 5:
-            self.change_led_col("RED")
+            # self.change_led_col("CAR_SIGNAL_RIGHT")
+            # self.change_led_col("CAR_SIGNAL_LEFT")
+            self.change_led_col("BRAKE")
+
 
             self.drive = False
             self.prev_omega = self.omega
@@ -120,7 +125,8 @@ class lane_follow_node(DTROS):
 
         # Start driving again
         if not self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 2:
-            self.change_led_col("GREEN")
+            self.change_led_col("DRIVING")
+
 
             self.speed = 0.3
             self.omega = self.prev_omega
@@ -131,7 +137,6 @@ class lane_follow_node(DTROS):
 
         # draw visulaization stuff for red stop
         image = cv2.drawContours(col_img[crop[0] : crop[1]], red_conts, -1, (45, 227, 224), 3)
-
         image = cv2.line(image, (red_x, red_y+red_h//2), (red_x + int((self.size_ratio*(red_y+red_h))), red_y+red_h), (45, 227, 224), 2)
 
         # draw visulaization stuff for yellow lane 
@@ -164,12 +169,8 @@ class lane_follow_node(DTROS):
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
             msg.format = "jpeg"
-            msg.data = np.array(cv2.imencode('.jpg', self.pub_img)[1]).tostring()
-
-            # test led service
-            col = String()
-            col.data = "BLUE"
-            self.change_led(col)
+            # msg.data = np.array(cv2.imencode('.jpg', self.pub_img)[1]).tostring()
+            msg.data = np.array(cv2.imencode('.jpg', self.pub_img)[1]).tobytes()
 
             self.img_publisher.publish(msg)
 
@@ -202,7 +203,7 @@ class lane_follow_node(DTROS):
 
         # integral part?
 
-        print(diff, self.omega)
+        print("PID: ", diff, self.omega)
 
 
 if __name__ == '__main__':
@@ -213,10 +214,5 @@ if __name__ == '__main__':
     while not rospy.is_shutdown() and node.run:
         node.img_pub()
         node.twist_pub()
-        #node.change_led_to(node.curr_col)
-<<<<<<< HEAD
-
-=======
->>>>>>> 6d4b57c1499848ca05f0989dc441f3c489b482cd
         rate.sleep()
     
