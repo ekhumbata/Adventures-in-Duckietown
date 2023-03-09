@@ -11,7 +11,7 @@ import numpy as np
 from sensor_msgs.msg import CameraInfo
 from duckietown_msgs.srv import ChangePattern
 from sensor_msgs.msg import CompressedImage, Range
-from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
+from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, BoolStamped
 from std_msgs.msg import String, Float32
 
 
@@ -29,8 +29,8 @@ class lane_follow_node(DTROS):
         self.yellow_upper = np.array([35, 255, 255]) 
         self.yellow_lower = np.array([20, 45, 25])
 
-        self.red_upper = np.array([185, 175, 242])
-        self.red_lower = np.array([171, 50, 100])
+        self.red_upper = np.array([185, 175, 242])  #[0, 107, 179]
+        self.red_lower = np.array([171, 50, 100])   #[13, 190, 241]
         # drive speed and ratio of goal vs distance from bot
         self.stopped_t = 0
         self.prev_omega = 0
@@ -54,6 +54,7 @@ class lane_follow_node(DTROS):
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
         self.dist_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/duckiebot_distance_node/distance", Float32, self.cb_dist, queue_size = 1)
         self.tof_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/front_center_tof_driver_node/range", Range, self.cb_tof, queue_size = 1)
+        self.det_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/duckiebot_detection_node/detection", BoolStamped, self.cb_bot_det, queue_size = 1)
 
         # publishers
         self.img_publisher = rospy.Publisher('/masked_image/compressed', CompressedImage)
@@ -106,6 +107,11 @@ class lane_follow_node(DTROS):
     def pub_col(self):
         self.change_led(self.col)
 
+
+    def cb_bot_det(self, msg):
+        print(msg.data)
+        if not msg.data:
+            self.collide = False
     
     def cb_dist(self, msg):
         d = msg.data
@@ -119,16 +125,16 @@ class lane_follow_node(DTROS):
 
     def cb_tof(self, msg):
         r = msg.range
-        if r < 0.15 and abs(r - self.prev_range) < 0.01:
-            print(f"SHIIIIIIIIT {r}, {abs(r - self.prev_range)}")
-            self.collide = True
-            self.drive = False
-            self.prev_omega = self.omega
-        else:
-            self.collide = False
-        self.prev_t += 1
-        if self.prev_t % 30 == 0:
-            self.prev_range = r
+        # if r < 0.15 and abs(r - self.prev_range) < 0.01:
+        #     print(f"SHIIIIIIIIT {r}, {abs(r - self.prev_range)}")
+        #     self.collide = True
+        #     self.drive = False
+        #     self.prev_omega = self.omega
+        # else:
+        #     self.collide = False
+        # self.prev_t += 1
+        # if self.prev_t % 30 == 0:
+        #     self.prev_range = r
             
 
     def cb_img(self, msg):
@@ -214,6 +220,8 @@ class lane_follow_node(DTROS):
         if not self.drive or self.collide:
             self.speed = 0
             self.omega = 0
+        else:
+            self.speed = 0.3
         msg = Twist2DStamped()
         msg.v = self.speed
         msg.omega = self.omega
