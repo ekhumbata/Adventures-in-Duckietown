@@ -63,7 +63,7 @@ class lane_follow_node(DTROS):
 
         # services
         led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
-        # os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
+        os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
         rospy.wait_for_service(led_topic)
         self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
         self.change_led_col("DRIVING")
@@ -149,6 +149,7 @@ class lane_follow_node(DTROS):
             # self.change_led_col("CAR_SIGNAL_RIGHT")
             # self.change_led_col("CAR_SIGNAL_LEFT")
             self.change_led_col("BRAKE")
+            print("HI")
 
             self.drive = False
             self.prev_omega = self.omega
@@ -157,6 +158,7 @@ class lane_follow_node(DTROS):
         # Start driving again
         if not self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 2:
             self.change_led_col("DRIVING")
+            print("HEY")
 
 
             self.speed = 0.3
@@ -246,7 +248,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown() and node.run:
         node.img_pub()
         node.twist_pub()
-        #node.pub_col()
+        node.pub_col()
         #node.change_led_to(node.curr_col)
         rate.sleep()
     
