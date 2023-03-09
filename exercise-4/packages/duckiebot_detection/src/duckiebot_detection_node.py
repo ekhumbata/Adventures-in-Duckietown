@@ -34,7 +34,7 @@ class DuckiebotDetectionNode(DTROS):
         self.host = str(os.environ['VEHICLE_NAME'])
         
         #Frequency at which to process the incoming images
-        self.process_frequency = 10
+        self.process_frequency = 2
         
         #Number of dots in the pattern, two elements: [number of columns, number of rows]
         self.circlepattern_dims = [7, 3]

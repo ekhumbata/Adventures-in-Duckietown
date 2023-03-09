@@ -114,23 +114,24 @@ class lane_follow_node(DTROS):
 
     def cb_bot_det(self, msg):
         print(msg.data)
-        if not msg.data:
+        if not msg.data :#and self.collide:
             self.collide = False
-
-            #self.stop_driving()
+            # self.collide = False
+            # if not self.at_stop_line:
+            #     self.speed = 0.3
+                #self.resume_drive()
     
     def cb_dist(self, msg):
         d = msg.data
         print(f"AHHHHHHHHHHHHHHHHHH {d}")
-        if d < 0.2:
+        if d < 0.4:
             self.collide = True
-            self.at_stop_line = True
-            print("OLA")
-
             self.stop_driving()
-            #self.prev_omega = self.omega
-        else:
-            self.resume_drive()
+            # self.speed = 0
+            # self.prev_omega = self.omega
+        elif self.collide:
+            #self.resume_drive()
+            #self.speed = 0.3
             self.collide = False
 
     def cb_tof(self, msg):
@@ -178,14 +179,14 @@ class lane_follow_node(DTROS):
             self.change_led_col("DRIVING")
 
 
-            # self.speed = 0.3
-            # self.omega = self.prev_omega
+            self.speed = 0.3
+            self.omega = self.prev_omega
 
             if np.random.randint(2, size = 1)[0] == 0:
                 print("TURN!!!!!!!!!!!!")
                 self.omega = -np.pi / 4
             self.at_stop_line = False
-            self.resume_drive()
+            #self.resume_drive()
             self.stopped_t = rospy.Time.now().to_sec()
 
         # draw visulaization stuff for red stop
@@ -208,7 +209,8 @@ class lane_follow_node(DTROS):
         self.pub_img = image
 
         # if only move the bot if drive is true
-        if not self.at_stop_line:
+        print(self.at_stop_line, self.collide, self.speed, self.omega)
+        if not self.at_stop_line or not self.collide:  
             # American driver
             self.pid(yellow_x, yellow_y + yellow_h//2, len(image[i]) // 2) 
             #English Driver
@@ -232,7 +234,7 @@ class lane_follow_node(DTROS):
         print("HERE")
         self.speed = 0
         self.prev_omega = self.omega
-        self = omega = 0
+        self.omega = 0
 
 
 
