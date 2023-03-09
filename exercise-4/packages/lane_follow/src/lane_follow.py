@@ -28,8 +28,8 @@ class lane_follow_node(DTROS):
         self.yellow_upper = np.array([35, 255, 255]) 
         self.yellow_lower = np.array([20, 45, 25])
 
-        self.red_upper = np.array([20, 255, 255])
-        self.red_lower = np.array([0, 100, 204])
+        self.red_upper = np.array([185, 175, 242])
+        self.red_lower = np.array([171, 50, 100])
         # drive speed and ratio of goal vs distance from bot
         self.stopped_t = 0
         self.prev_omega = 0
@@ -96,6 +96,8 @@ class lane_follow_node(DTROS):
         
     def change_led_col(self, col):
         self.col.data = col
+
+    def pub_col(self):
         self.change_led(self.col)
 
     def cb_img(self, msg):
@@ -112,7 +114,7 @@ class lane_follow_node(DTROS):
 
         # Stop driving driving
         if red_y > 200 and self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 5:
-            self.change_led_col("RED")
+            self.change_led_col("CAR_SIGNAL_LEFT")
 
             self.drive = False
             self.prev_omega = self.omega
@@ -125,6 +127,7 @@ class lane_follow_node(DTROS):
             self.speed = 0.3
             self.omega = self.prev_omega
             if np.random.randint(2, size = 1)[0] == 0:
+                print("TURN!!!!!!!!!!!!")
                 self.omega = -np.pi / 4
             self.drive = True
             self.stopped_t = rospy.Time.now().to_sec()
@@ -193,12 +196,12 @@ class lane_follow_node(DTROS):
         self.omega = -self.PID[0] * diff
 
         # derivative part
-        # curr_time = rospy.get_time()
-        # dt = curr_time - self.prev_time
-        # self.prev_time = curr_time
-        # if self.prev_diff != None:
-        #     self.omega += self.PID[2] * (diff - self.prev_diff) / dt
-        # self.prev_diff = diff
+        curr_time = rospy.get_time()
+        dt = curr_time - self.prev_time
+        self.prev_time = curr_time
+        if self.prev_diff != None:
+            self.omega += self.PID[2] * (diff - self.prev_diff) / dt
+        self.prev_diff = diff
 
         # integral part?
 
@@ -213,10 +216,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown() and node.run:
         node.img_pub()
         node.twist_pub()
+        #node.pub_col()
         #node.change_led_to(node.curr_col)
-<<<<<<< HEAD
-
-=======
->>>>>>> 6d4b57c1499848ca05f0989dc441f3c489b482cd
         rate.sleep()
     
