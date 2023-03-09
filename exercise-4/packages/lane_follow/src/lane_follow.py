@@ -119,12 +119,15 @@ class lane_follow_node(DTROS):
         if d < 0.2:
             self.collide = True
             self.drive = False
-            self.prev_omega = self.omega
+            self.stop_driving()
+            #self.prev_omega = self.omega
         else:
+            self.resume()
             self.collide = False
 
     def cb_tof(self, msg):
         r = msg.range
+        print(f"range {r}")
         # if r < 0.15 and abs(r - self.prev_range) < 0.01:
         #     print(f"SHIIIIIIIIT {r}, {abs(r - self.prev_range)}")
         #     self.collide = True
@@ -157,8 +160,9 @@ class lane_follow_node(DTROS):
             self.change_led_col("BRAKE")
             print("HI")
 
+            self.stop_driving()
             self.drive = False
-            self.prev_omega = self.omega
+            # self.prev_omega = self.omega
             self.stopped_t = rospy.Time.now().to_sec()
 
         # Start driving again
@@ -167,12 +171,14 @@ class lane_follow_node(DTROS):
             print("HEY")
 
 
-            self.speed = 0.3
-            self.omega = self.prev_omega
+            # self.speed = 0.3
+            # self.omega = self.prev_omega
+
             if np.random.randint(2, size = 1)[0] == 0:
                 print("TURN!!!!!!!!!!!!")
                 self.omega = -np.pi / 4
             self.drive = True
+            self.resume_drive()
             self.stopped_t = rospy.Time.now().to_sec()
 
         # draw visulaization stuff for red stop
@@ -214,14 +220,19 @@ class lane_follow_node(DTROS):
 
             self.img_publisher.publish(msg)
 
+    def resume_drive(self):
+        self.speed = 0.3
+        self.omega = self.prev_omega
+
+    def stop_driving(self):
+        self.speed = 0
+        self.prev_omega = self.omega
+        self = omega = 0
+
+
 
     # control the speed and angle of the bot
     def twist_pub(self):
-        if not self.drive or self.collide:
-            self.speed = 0
-            self.omega = 0
-        else:
-            self.speed = 0.3
         msg = Twist2DStamped()
         msg.v = self.speed
         msg.omega = self.omega
@@ -245,7 +256,7 @@ class lane_follow_node(DTROS):
 
         # integral part?
 
-        print("PID: ", diff, self.omega)
+        #print("PID: ", diff, self.omega)
 
 
 if __name__ == '__main__':
