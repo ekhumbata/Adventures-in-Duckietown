@@ -120,7 +120,7 @@ class lane_follow_node(DTROS):
     def cb_dist(self, msg):
         d = msg.data
         print(f"AHHHHHHHHHHHHHHHHHH {d}")
-        if d < 0.2:
+        if d < 0.4:
             self.collide = True
             self.at_stop_line = True
             self.prev_omega = self.omega
