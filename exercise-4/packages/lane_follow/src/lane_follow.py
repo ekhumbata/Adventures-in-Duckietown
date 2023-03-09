@@ -25,20 +25,23 @@ class lane_follow_node(DTROS):
         self.pub_img = None
         self.run = True
 
-        # hsv color values to mask
+        # hsv color values to mask for yellow
         self.yellow_upper = np.array([35, 255, 255]) 
         self.yellow_lower = np.array([20, 45, 25])
 
+        #hsv colour values to mask for red
         self.red_upper = np.array([185, 175, 242])  #[0, 107, 179]
         self.red_lower = np.array([171, 50, 100])   #[13, 190, 241]
+        
         # drive speed and ratio of goal vs distance from bot
-        self.stopped_t = 0
-        self.prev_omega = 0
-        self.drive = True
-        self.speed = 0.3
-        self.omega = 0
+        self.stopped_t = 0      #realtime update on how long bot has been stopped for
+        self.prev_omega = 0     #last angle bot was at 
+        self.at_stop_line = False
+        self.speed = 0.3        #current speed of bot
+        self.omega = 0          #current angle bot is at
         self.size_ratio = 0.8   #distance from centre of duckiebot to dotted line
 
+        #used for the PID control
         self.prev_time = 0
         self.prev_diff = None
         # how much each PID param effects change in omega
@@ -46,8 +49,9 @@ class lane_follow_node(DTROS):
 
         self.col = String()
         self.collide = False
-        self.prev_range = 10
-        self.prev_t = 0
+        
+        #self.prev_range = 10
+        #self.prev_t = 0
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
@@ -112,17 +116,21 @@ class lane_follow_node(DTROS):
         print(msg.data)
         if not msg.data:
             self.collide = False
+
+            #self.stop_driving()
     
     def cb_dist(self, msg):
         d = msg.data
         print(f"AHHHHHHHHHHHHHHHHHH {d}")
         if d < 0.2:
             self.collide = True
-            self.drive = False
+            self.at_stop_line = True
+            print("OLA")
+
             self.stop_driving()
             #self.prev_omega = self.omega
         else:
-            self.resume()
+            self.resume_drive()
             self.collide = False
 
     def cb_tof(self, msg):
@@ -131,7 +139,7 @@ class lane_follow_node(DTROS):
         # if r < 0.15 and abs(r - self.prev_range) < 0.01:
         #     print(f"SHIIIIIIIIT {r}, {abs(r - self.prev_range)}")
         #     self.collide = True
-        #     self.drive = False
+        #     self.at_stop_line = True
         #     self.prev_omega = self.omega
         # else:
         #     self.collide = False
@@ -154,21 +162,20 @@ class lane_follow_node(DTROS):
 
 
         # Stop driving at a line
-        if red_y > 200 and self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 5:
+        if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:
             # self.change_led_col("CAR_SIGNAL_RIGHT")
             # self.change_led_col("CAR_SIGNAL_LEFT")
             self.change_led_col("BRAKE")
-            print("HI")
 
+            print("HOLA")
             self.stop_driving()
-            self.drive = False
+            self.at_stop_line = True
             # self.prev_omega = self.omega
             self.stopped_t = rospy.Time.now().to_sec()
 
         # Start driving again
-        if not self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 2:
+        if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
             self.change_led_col("DRIVING")
-            print("HEY")
 
 
             # self.speed = 0.3
@@ -177,7 +184,7 @@ class lane_follow_node(DTROS):
             if np.random.randint(2, size = 1)[0] == 0:
                 print("TURN!!!!!!!!!!!!")
                 self.omega = -np.pi / 4
-            self.drive = True
+            self.at_stop_line = False
             self.resume_drive()
             self.stopped_t = rospy.Time.now().to_sec()
 
@@ -201,14 +208,11 @@ class lane_follow_node(DTROS):
         self.pub_img = image
 
         # if only move the bot if drive is true
-        if self.drive:
+        if not self.at_stop_line:
             # American driver
             self.pid(yellow_x, yellow_y + yellow_h//2, len(image[i]) // 2) 
             #English Driver
             #self.pid(yellow_x, yellow_y - yellow_h//2, len(image[i]) // 2) 
-
-
-       
         
     def img_pub(self):
         if self.pub_img is not None:
@@ -225,6 +229,7 @@ class lane_follow_node(DTROS):
         self.omega = self.prev_omega
 
     def stop_driving(self):
+        print("HERE")
         self.speed = 0
         self.prev_omega = self.omega
         self = omega = 0
