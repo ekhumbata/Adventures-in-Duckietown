@@ -10,9 +10,9 @@ import numpy as np
 #from std_msgs.msg import String
 from sensor_msgs.msg import CameraInfo
 from duckietown_msgs.srv import ChangePattern
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, Range
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 
 
 class lane_follow_node(DTROS):
@@ -44,10 +44,15 @@ class lane_follow_node(DTROS):
         self.PID = [1, 1, 0]
 
         self.col = String()
+        self.collide = False
+        self.prev_range = 10
+        self.prev_t = 0
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
+        self.dist_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/duckiebot_distance_node/distance", Float32, self.cb_dist, queue_size = 1)
+        self.tof_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/front_center_tof_driver_node/range", Range, self.cb_tof, queue_size = 1)
 
         # publishers
         self.img_publisher = rospy.Publisher('/masked_image/compressed', CompressedImage)
@@ -100,6 +105,31 @@ class lane_follow_node(DTROS):
     def pub_col(self):
         self.change_led(self.col)
 
+    
+    def cb_dist(self, msg):
+        d = msg.data
+        print(f"AHHHHHHHHHHHHHHHHHH {d}")
+        if d < 0.2:
+            self.collide = True
+            self.drive = False
+            self.prev_omega = self.omega
+        else:
+            self.collide = False
+
+    def cb_tof(self, msg):
+        r = msg.range
+        if r < 0.15 and abs(r - self.prev_range) < 0.01:
+            print(f"SHIIIIIIIIT {r}, {abs(r - self.prev_range)}")
+            self.collide = True
+            self.drive = False
+            self.prev_omega = self.omega
+        else:
+            self.collide = False
+        self.prev_t += 1
+        if self.prev_t % 30 == 0:
+            self.prev_range = r
+            
+
     def cb_img(self, msg):
         # get the image from camera and mask over the hsv range set in init
         data_arr = np.fromstring(msg.data, np.uint8)
@@ -112,7 +142,7 @@ class lane_follow_node(DTROS):
         yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
-        # Stop driving driving
+        # Stop driving driving at a line
         if red_y > 200 and self.drive and rospy.Time.now().to_sec() - self.stopped_t >= 5:
             self.change_led_col("CAR_SIGNAL_LEFT")
 
@@ -179,7 +209,7 @@ class lane_follow_node(DTROS):
 
     # control the speed and angle of the bot
     def twist_pub(self):
-        if not self.drive:
+        if not self.drive or self.collide:
             self.speed = 0
             self.omega = 0
         msg = Twist2DStamped()

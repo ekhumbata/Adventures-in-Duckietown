@@ -118,7 +118,7 @@ class DuckiebotDetectionNode(DTROS):
             vehicle_centers_msg_out.H = self.circlepattern_dims[1]
             vehicle_centers_msg_out.W = self.circlepattern_dims[0]
 
-        print(vehicle_centers_msg_out.detection.data)
+        # print(vehicle_centers_msg_out.detection.data)
 
         self.pub_centers.publish(vehicle_centers_msg_out)
         self.pub_detection.publish(detection_flag_msg_out)
