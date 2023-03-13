@@ -45,3 +45,16 @@ answer
 **In what situations did it perform poorly?**
 
 <br>
+
+
+## References
+---
+[Lab Manual](https://eclass.srv.ualberta.ca/pluginfile.php/9319824/mod_resource/content/1/Exercise%204.pdf)
+
+
+[dt-core Library](https://github.com/duckietown/dt-core)
+
+[CMPUT 412 Cheat Sheet](https://docs.google.com/document/d/1bQfkR_tmwctFozEZlZkmojBZHkegscJPJVuw-IEXwI4/edit#)
+
+[Duckietown Docs](https://docs.duckietown.org/daffy/)
+
