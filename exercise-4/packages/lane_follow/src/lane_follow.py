@@ -24,6 +24,7 @@ class lane_follow_node(DTROS):
         self.change_led = None
         self.pub_img = None
         self.run = True
+        self.isRunningPID = True
 
         # hsv color values to mask for yellow
         self.yellow_upper = np.array([35, 255, 255]) 
@@ -53,7 +54,7 @@ class lane_follow_node(DTROS):
         self.is_turning_right = False
         self.is_turning_left = False
         self.turning_start_time = 0
-        self.total_turning_time = 10
+        self.total_turning_time = 4
         
         #self.prev_range = 10
         #self.prev_t = 0
@@ -179,7 +180,7 @@ class lane_follow_node(DTROS):
 
             ## Here I think is where we need to watch for what direction the lead duckiebot is turning
             ## Probably turn on signal light as soon as we detect this!!!
-            self.startTurningRight()  # TODO: update these based on what is detected
+              # TODO: update these based on what is detected
             # self.startTurningLeft()
 
 
@@ -201,8 +202,8 @@ class lane_follow_node(DTROS):
             self.turn_left()
 
 
-        # Resume normal driving
-        if not (self.is_turning_left and self.is_turning_right): # Don't do normal driving when turning
+        # Resum normal driving
+        if not isCurrentlyTurning: # Don't do normal driving when turning
             if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
 
                 # # steal the thread and turn right, then resume lanefollow
@@ -215,6 +216,7 @@ class lane_follow_node(DTROS):
 
                 self.speed = 0.3
                 self.omega = self.prev_omega
+                self.startTurningRight()
                 # if np.random.randint(2, size = 1)[0] == 0:
                 #     print("TURN!!!!!!!!!!!!")
                 #     self.omega = -np.pi / 4
@@ -278,7 +280,9 @@ class lane_follow_node(DTROS):
         self.change_led_col("CAR_SIGNAL_RIGHT") # idk if repeatedly setting it is causing problems, maybe just set once?
 
         # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
-        self.omega = np.pi
+        self.prev_omega = self.omega
+        self.omega = -5 * np.pi / 4
+        # self.at_stop_line = False
 
 
         print("turning right. time elapsed:", rospy.Time.now().to_sec() - self.turning_start_time)
@@ -286,7 +290,11 @@ class lane_follow_node(DTROS):
         # TODO: find a smarter end condition - stop turning once a certain amount of time has passed
         isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
         if isTurningTimeExpired:
+            self.isRunningPID = True
             self.is_turning_right = False
+            self.omega = self.prev_omega
+            self.change_led_col("DRIVING")
+            
 
 
     def turn_left(self):
@@ -296,6 +304,7 @@ class lane_follow_node(DTROS):
 
     def startTurningRight(self):
         self.is_turning_right = True
+        self.isRunningPID = False
         self.turning_start_time = rospy.Time.now().to_sec()
 
 
@@ -305,22 +314,23 @@ class lane_follow_node(DTROS):
 
 
     def pid(self, x, y, goal):
-        # proprtional part
-        scale_for_pixel_area = 0.02
-        diff = ((x + int((self.size_ratio*y))) - goal) * scale_for_pixel_area  
-        self.omega = -self.PID[0] * diff
+        if self.isRunningPID:
+            # proprtional part
+            scale_for_pixel_area = 0.02
+            diff = ((x + int((self.size_ratio*y))) - goal) * scale_for_pixel_area  
+            self.omega = -self.PID[0] * diff
 
-        # derivative part
-        curr_time = rospy.get_time()
-        dt = curr_time - self.prev_time
-        self.prev_time = curr_time
-        if self.prev_diff != None:
-            self.omega += self.PID[2] * (diff - self.prev_diff) / dt
-        self.prev_diff = diff
+            # derivative part
+            curr_time = rospy.get_time()
+            dt = curr_time - self.prev_time
+            self.prev_time = curr_time
+            if self.prev_diff != None:
+                self.omega += self.PID[2] * (diff - self.prev_diff) / dt
+            self.prev_diff = diff
 
-        # integral part?
+            # integral part?
 
-        # print("PID: ", diff, self.omega)
+            # print("PID: ", diff, self.omega)
 
 
 if __name__ == '__main__':
