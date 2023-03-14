@@ -42,18 +42,21 @@ class lane_follow_node(DTROS):
         self.size_ratio = 0.8   #distance from centre of duckiebot to dotted line
 
         #used for the PID control
-        self.prev_time = 0
-        self.prev_diff = None
+        self.prev_time = 0      #last time stamp for PID
+        self.prev_error = None
         # how much each PID param effects change in omega
         self.PID = [1, 1, 0]
 
+        #used to change the color of the LEDS
         self.col = String()
+        #used to detect if we are about to collide with another bot
         self.collide = False
 
-
-        self.total_turning_time = 2
+        #how long the PID is inactive while the bot is in the turn sequence 
+        self.total_turning_time = 1.5
+        #the beginning of the turn time
         self.turning_start_time = 0
-        # sets the turn direction
+        # sets the turn direction 0 -> straight; -1 -> right; 1 -> left
         self.signal = 0
         
         #self.prev_range = 10
@@ -79,14 +82,6 @@ class lane_follow_node(DTROS):
         self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
         self.change_led_col("DRIVING")
 
-
-    # def cb_img(self, msg):
-    #     # get the image from camera and mask over the hsv range set in init
-    #     data_arr = np.fromstring(msg.data, np.uint8)
-    #     col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
-    #     crop = [len(col_img) // 3, -1]
-    #     hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
-    #     imagemask = np.asarray(cv2.inRange(hsv[crop[0] : crop[1]], self.lower_bound, self.upper_bound))
 
     def lane_logic(self, imagemask):
         # find the current color in the FOV
@@ -125,7 +120,6 @@ class lane_follow_node(DTROS):
     
     def cb_dist(self, msg):
         d = msg.data
-        print(f"AHHHHHHHHHHHHHHHHHH {d}")
         if d < 0.4:
             self.collide = True
             self.at_stop_line = True
@@ -162,14 +156,11 @@ class lane_follow_node(DTROS):
         # 0 -> straight; -1 -> right; 1 -> left
         is_turning = False
 
-
-
         # Stop driving at a line
         if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:   
             #self.change_led_col("BRAKE")
             self.signal = 1
             if self.signal == -1:
-                print("HERE", self.signal)
                 self.change_led_col("CAR_SIGNAL_RIGHT")
             elif self.signal == 1:
                 self.change_led_col("CAR_SIGNAL_LEFT")
@@ -189,7 +180,6 @@ class lane_follow_node(DTROS):
             self.speed = 0.3
             # self.omega = self.prev_omega
             is_turning = True
-            self.turning_start_time = rospy.Time.now().to_sec()
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
 
@@ -222,6 +212,7 @@ class lane_follow_node(DTROS):
             #self.pid(yellow_x, yellow_y - yellow_h//2, len(image[i]) // 2) 
         
     def img_pub(self):
+        #publishs the open cv image 
         if self.pub_img is not None:
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
@@ -239,7 +230,6 @@ class lane_follow_node(DTROS):
             self.omega = 0
         else:
             self.speed = 0.3
-        print(f"OMEGA {self.omega}")
         msg = Twist2DStamped()
         msg.v = self.speed
         msg.omega = self.omega
@@ -247,24 +237,21 @@ class lane_follow_node(DTROS):
         self.twist_publisher.publish(msg)
 
 
+    #forces a turn, take a variable stating 
     def turn(self, isTurn):
+        # at the start of a turn set the omega to the correct dir (L, R or straight)
         if isTurn:
-            print("################", self.signal)
             self.isRunningPID = False
             # self.change_led_col("CAR_SIGNAL_RIGHT") # idk if repeatedly setting it is causing problems, maybe just set once?
 
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
-            self.omega = (5 * np.pi / 4) * self.signal
-
-
-            print("turning right. time elapsed:", rospy.Time.now().to_sec() - self.turning_start_time)
-
-        # Stop turning once a certain amount of time has passed
+            self.omega = (np.pi / 2) * self.signal
+            self.turning_start_time = rospy.Time.now().to_sec()
+        # Stop turning once a certain amount of time has passed and resume lane follow
         isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
         if isTurningTimeExpired:
             self.isRunningPID = True
-            # self.is_turning_right = False
             self.omega = self.prev_omega
             self.change_led_col("DRIVING")
 
@@ -280,9 +267,9 @@ class lane_follow_node(DTROS):
         curr_time = rospy.get_time()
         dt = curr_time - self.prev_time
         self.prev_time = curr_time
-        if self.prev_diff != None:
-            self.omega += self.PID[2] * (diff - self.prev_diff) / dt
-        self.prev_diff = diff
+        if self.prev_error != None:
+            self.omega += self.PID[2] * (diff - self.prev_error) / dt
+        self.prev_error = diff
 
         # integral part?
 
