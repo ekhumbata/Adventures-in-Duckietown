@@ -189,7 +189,7 @@ class lane_follow_node(DTROS):
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
 
-        self.turn(is_turning_right, signal)
+        self.turn(is_turning, signal)
 
 
         # draw visulaization stuff for red stop
