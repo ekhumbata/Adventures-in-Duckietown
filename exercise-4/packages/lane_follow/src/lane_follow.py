@@ -183,7 +183,8 @@ class lane_follow_node(DTROS):
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
 
-        self.turn_right(is_turning_right)
+        self.turn(is_turning_right, -1)
+        self.turn(is_turning_left, 1)
 
         # draw visulaization stuff for red stop
         image = cv2.drawContours(col_img[crop[0] : crop[1]], red_conts, -1, (45, 227, 224), 3)
@@ -236,20 +237,18 @@ class lane_follow_node(DTROS):
         self.twist_publisher.publish(msg)
 
 
-    def turn_right(self, turn):
-        if turn:
-            # hardcodedRightTurnOmega = np.pi
+    def turn(self, isTurn, dir):
+        if isTurn:
             self.change_led_col("CAR_SIGNAL_RIGHT") # idk if repeatedly setting it is causing problems, maybe just set once?
 
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
-            self.omega = -5 * np.pi / 4
-            # self.at_stop_line = False
+            self.omega = (5 * np.pi / 4) * dir
 
 
             print("turning right. time elapsed:", rospy.Time.now().to_sec() - self.turning_start_time)
 
-        # TODO: find a smarter end condition - stop turning once a certain amount of time has passed
+        # Stop turning once a certain amount of time has passed
         isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
         if isTurningTimeExpired:
             self.isRunningPID = True
