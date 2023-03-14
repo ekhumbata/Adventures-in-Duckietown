@@ -34,15 +34,27 @@ LED_protocol:
       frequency_mask: [1,0,1,0,1]
       frequency: *f1
 
-    CAR_SIGNAL_LEFT:
+    CAR_SIGNAL_LEFT_BRAKE:
       color_mask: []
       color_list: ["orange","white","white","red","orange"]
       frequency_mask: [1,0,0,0,1]
       frequency: *f1
 
-    CAR_SIGNAL_RIGHT:
+    CAR_SIGNAL_RIGHT_BRAKE:
       color_mask: []
       color_list: ["white","white","orange","orange","red"]
+      frequency_mask: [0,0,1,1,0]
+      frequency: *f1
+
+    CAR_SIGNAL_LEFT_DRIVE:
+      color_mask: []
+      color_list: ["orange","white","white","dimred","orange"]
+      frequency_mask: [1,0,0,0,1]
+      frequency: *f1
+
+    CAR_SIGNAL_RIGHT_DRIVE:
+      color_mask: []
+      color_list: ["white","white","orange","orange","dimred"]
       frequency_mask: [0,0,1,1,0]
       frequency: *f1
 

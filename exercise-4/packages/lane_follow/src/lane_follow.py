@@ -6,6 +6,7 @@ import os
 import rospy
 from duckietown.dtros import DTROS, NodeType
 import numpy as np
+import random
 
 #from std_msgs.msg import String
 from sensor_msgs.msg import CameraInfo
@@ -58,6 +59,10 @@ class lane_follow_node(DTROS):
         self.turning_start_time = 0
         # sets the turn direction 0 -> straight; -1 -> right; 1 -> left
         self.signal = 0
+
+        # self.showBrakeLights = None
+        # self.showDrivingLights = None
+        self.showLights = [None, None, None, None, None, None] # Driving, Brake, LeftDrive, RightDrive, LeftBrake, RightBrake
         
         #self.prev_range = 10
         #self.prev_t = 0
@@ -114,7 +119,7 @@ class lane_follow_node(DTROS):
 
 
     def cb_bot_det(self, msg):
-        print(msg.data)
+        # print(msg.data)
         if not msg.data:
             self.collide = False
     
@@ -156,18 +161,31 @@ class lane_follow_node(DTROS):
         # 0 -> straight; -1 -> right; 1 -> left
         is_turning = False
 
+
+        if self.showLights[0]: self.change_led_col("DRIVING")
+        if self.showLights[1]: self.change_led_col("BRAKE")
+        if self.showLights[2]: self.change_led_col("CAR_SIGNAL_LEFT_DRIVE")
+        if self.showLights[3]: self.change_led_col("CAR_SIGNAL_RIGHT_DRIVE")
+        if self.showLights[4]: self.change_led_col("CAR_SIGNAL_LEFT_BRAKE")
+        if self.showLights[5]: self.change_led_col("CAR_SIGNAL_RIGHT_BRAKE")
+
         # Stop driving at a line
         if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:   
-            #self.change_led_col("BRAKE")
-            self.signal = 1
-            if self.signal == -1:
-                self.change_led_col("CAR_SIGNAL_RIGHT")
-            elif self.signal == 1:
-                self.change_led_col("CAR_SIGNAL_LEFT")
-            elif signal == -1:
-                self.change_led_col("CAR_SIGNAL_RIGHT")
-            else:
-                self.change_led_col("BRAKE")
+            self.showLights = [0,1,0,0,0,0] # Brake
+            print("=== stop ===")
+
+
+
+
+            # self.signal = 1
+            self.signal = random.random.choice([-1, 1])
+
+
+            # if(self.signal == -1):
+            #     self.showLights = [0,0,0,0,0,1] # RightBrake
+            # else:
+            #     self.showLights = [0,0,0,0,1,0] # LeftBrake
+
 
             self.at_stop_line = True
             self.prev_omega = self.omega
@@ -175,7 +193,8 @@ class lane_follow_node(DTROS):
 
         # Start driving again
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
-            #self.change_led_col("DRIVING")
+            self.showLights = [1,0,0,0,0,0] # Driving
+            print("=== drive ===")
 
             self.speed = 0.3
             # self.omega = self.prev_omega
@@ -241,19 +260,30 @@ class lane_follow_node(DTROS):
     def turn(self, isTurn):
         # at the start of a turn set the omega to the correct dir (L, R or straight)
         if isTurn:
-            self.isRunningPID = False
-            # self.change_led_col("CAR_SIGNAL_RIGHT") # idk if repeatedly setting it is causing problems, maybe just set once?
-
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
             self.omega = (np.pi / 2) * self.signal
             self.turning_start_time = rospy.Time.now().to_sec()
+            self.isRunningPID = False
+
+
         # Stop turning once a certain amount of time has passed and resume lane follow
         isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
+        if not isTurningTimeExpired:
+            if(self.signal == -1):
+                print("=== right drive ===")
+                self.showLights = [0,0,0,1,0,0] # RightDriving
+            else:
+                print("=== left drive ===")
+                self.showLights = [0,0,1,0,0,0] # LeftDriving
+
+
         if isTurningTimeExpired:
             self.isRunningPID = True
             self.omega = self.prev_omega
-            self.change_led_col("DRIVING")
+
+            # self.showLights = [1,0,0,0,0,0] # Driving
+            # print("============= done turn ==============")
 
 
 
@@ -273,7 +303,7 @@ class lane_follow_node(DTROS):
 
         # integral part?
 
-        print("PID: ", diff, self.omega)
+        # print("PID: ", diff, self.omega)
 
 
 if __name__ == '__main__':
