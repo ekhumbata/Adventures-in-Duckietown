@@ -57,6 +57,8 @@ class lane_follow_node(DTROS):
         #used to detect if we are about to collide with another bot
         self.collide = False
 
+        self.validNextTurnOptions = [-1, 0, 1] # TODO: need to add apriltag detection so the bot has some idea of where it is so it can init this
+
         #how long the PID is inactive while the bot is in the turn sequence 
         self.total_turning_time = 1.5
         #the beginning of the turn time
@@ -189,7 +191,7 @@ class lane_follow_node(DTROS):
 
             # Choose random direction to turn from valid list
             # self.signal = random.choice([-1, 0, 1])
-            self.signal = random.choice([0])
+            self.signal = random.choice(self.validNextTurnOptions)
 
 
             if(self.signal == 1):
@@ -279,6 +281,15 @@ class lane_follow_node(DTROS):
             self.omega = (np.pi / 2) * self.signal
             self.turning_start_time = rospy.Time.now().to_sec()
             self.isRunningPID = False
+
+
+            # Update valid turn options based on possible moves
+            if(self.signal == 1):
+                if(self.validNextTurnOptions.contains(0)): self.validNextTurnOptions = [-1, 1] # If we turned and last options contained straight, we must be in middle
+                else: self.validNextTurnOptions = [0, 1] # Otherwise, we must have turned onto a straightaway
+            if(self.signal == -1):
+                if(self.validNextTurnOptions.contains(0)): self.validNextTurnOptions = [-1, 1]
+                else: self.validNextTurnOptions = [-1, 0]
 
 
         # Stop turning once a certain amount of time has passed and resume lane follow
