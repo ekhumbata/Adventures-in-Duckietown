@@ -22,6 +22,65 @@ LED_protocol:
     f5: &f5 10.6
 
   signals:
+    CAR_SIGNAL_LEFT_BRAKE:
+      color_mask: []
+      # color_list: ["orange","white","white","red","orange"] #30
+      # frequency_mask: [1,0,0,0,1]
+      color_list: ["orange","white","orange","red","white"] #04
+      frequency_mask: [1,0,1,0,0]
+      frequency: *f1
+
+    CAR_SIGNAL_RIGHT_BRAKE:
+      color_mask: []
+      # color_list: ["white","white","orange","orange","red"] #30
+      # frequency_mask: [0,0,1,1,0]
+      color_list: ["white","orange","red","orange","white"] #04
+      frequency_mask: [0,1,0,1,0]
+      frequency: *f1
+
+    CAR_SIGNAL_LEFT_DRIVE:
+      color_mask: []
+      # color_list: ["orange","white","white","dimred","orange"] #30
+      # frequency_mask: [1,0,0,0,1]
+      color_list: ["orange","white","orange","dimred","white"] #04
+      frequency_mask: [1,0,1,0,0]
+      frequency: *f1
+
+    CAR_SIGNAL_RIGHT_DRIVE:
+      color_mask: []
+      # color_list: ["white","white","orange","orange","dimred"] #30
+      # frequency_mask: [0,0,1,1,0]
+      color_list: ["white","orange","dimred","orange","white"] #04
+      frequency_mask: [0,1,0,1,0]
+      frequency: *f1
+
+    DRIVING:
+      color_mask: []
+      # color_list: ["white","white","white","dimred","dimred"] #30
+      color_list: ["white","white","dimred","dimred","white"] #04
+      frequency_mask: []
+      frequency:  0
+
+    BRAKE:
+      color_mask: []
+      # color_list: ["white","white","white","red","red"] #30
+      color_list: ["white","white","red","red","white"] #04
+      frequency_mask: []
+      frequency: 0
+
+
+    LIGHT_OFF:
+      color_mask: []
+      color_list: "switchedoff"
+      frequency_mask: []
+      frequency:  0
+
+    light_off:
+      color_mask: []
+      color_list: "switchedoff"
+      frequency_mask: []
+      frequency:  0
+
     CAR_SIGNAL_PRIORITY:
       color_mask: []
       color_list: ["purple","red","purple","red","purple"]
@@ -32,30 +91,6 @@ LED_protocol:
       color_mask: []
       color_list: ["white","red","white","red","white"]
       frequency_mask: [1,0,1,0,1]
-      frequency: *f1
-
-    CAR_SIGNAL_LEFT_BRAKE:
-      color_mask: []
-      color_list: ["orange","white","white","red","orange"]
-      frequency_mask: [1,0,0,0,1]
-      frequency: *f1
-
-    CAR_SIGNAL_RIGHT_BRAKE:
-      color_mask: []
-      color_list: ["white","white","orange","orange","red"]
-      frequency_mask: [0,0,1,1,0]
-      frequency: *f1
-
-    CAR_SIGNAL_LEFT_DRIVE:
-      color_mask: []
-      color_list: ["orange","white","white","dimred","orange"]
-      frequency_mask: [1,0,0,0,1]
-      frequency: *f1
-
-    CAR_SIGNAL_RIGHT_DRIVE:
-      color_mask: []
-      color_list: ["white","white","orange","orange","dimred"]
-      frequency_mask: [0,0,1,1,0]
       frequency: *f1
 
     CAR_SIGNAL_A:
@@ -97,30 +132,6 @@ LED_protocol:
     BLUE:
       color_mask: []
       color_list: "blue"
-      frequency_mask: []
-      frequency:  0
-
-    DRIVING:
-      color_mask: []
-      color_list: ["white","white","white","dimred","dimred"]
-      frequency_mask: []
-      frequency:  0
-
-    BRAKE:
-      color_mask: []
-      color_list: ["white","white","white","red","red"]
-      frequency_mask: []
-      frequency: 0
-
-    LIGHT_OFF:
-      color_mask: []
-      color_list: "switchedoff"
-      frequency_mask: []
-      frequency:  0
-
-    light_off:
-      color_mask: []
-      color_list: "switchedoff"
       frequency_mask: []
       frequency:  0
 

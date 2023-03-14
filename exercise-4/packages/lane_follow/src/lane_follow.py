@@ -49,6 +49,8 @@ class lane_follow_node(DTROS):
         self.prev_error = None
         # how much each PID param effects change in omega
         self.PID = [1, 1, 0]
+        self.isRunningPID = True
+        self.follow = False
 
         #used to change the color of the LEDS
         self.col = String()
@@ -120,15 +122,15 @@ class lane_follow_node(DTROS):
         return x, y, w, h, conts
         
     def change_led_col(self, col):
-        # self.col.data = col
-        self.col.data = "LIGHT_OFF"
+        self.col.data = col
+        # self.col.data = "LIGHT_OFF"
 
     def pub_col(self):
         self.change_led(self.col)
 
 
     def cb_bot_det(self, msg):
-        print(msg.data)
+        # print(msg.data)
         self.follow = msg.data
         if not msg.data:
             self.collide = False
@@ -181,20 +183,19 @@ class lane_follow_node(DTROS):
 
         # Stop driving at a line
         if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:   
-            self.showLights = [0,1,0,0,0,0] # Brake
             print("=== stop ===")
+            self.showLights = [0,1,0,0,0,0] # Brake
 
 
+            # Choose random direction to turn from valid list
+            # self.signal = random.choice([-1, 0, 1])
+            self.signal = random.choice([0])
 
 
-            # self.signal = 1
-            self.signal = random.random.choice([-1, 1])
-
-
-            # if(self.signal == -1):
-            #     self.showLights = [0,0,0,0,0,1] # RightBrake
-            # else:
-            #     self.showLights = [0,0,0,0,1,0] # LeftBrake
+            if(self.signal == 1):
+                self.showLights = [0,0,0,0,1,0] # LeftBrake
+            elif(self.signal == -1):
+                self.showLights = [0,0,0,0,0,1] # RightBrake
 
 
             self.at_stop_line = True
@@ -203,8 +204,8 @@ class lane_follow_node(DTROS):
 
         # Start driving again
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
-            self.showLights = [1,0,0,0,0,0] # Driving
             print("=== drive ===")
+            self.showLights = [1,0,0,0,0,0] # Driving
 
             self.speed = 0.3
             # self.omega = self.prev_omega
@@ -238,11 +239,11 @@ class lane_follow_node(DTROS):
             # if not following another bot lane follow
             if not self.follow:
                 self.pid(yellow_x, yellow_y + yellow_h//2, len(image[i]) // 2) 
-
-            
             #English Driver
             #self.pid(yellow_x, yellow_y - yellow_h//2, len(image[i]) // 2) 
         
+
+
     def img_pub(self):
         #publishs the open cv image 
         if self.pub_img is not None:
@@ -283,20 +284,24 @@ class lane_follow_node(DTROS):
         # Stop turning once a certain amount of time has passed and resume lane follow
         isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
         if not isTurningTimeExpired:
-            if(self.signal == -1):
-                print("=== right drive ===")
-                self.showLights = [0,0,0,1,0,0] # RightDriving
-            else:
+            if(self.signal == 1):
                 print("=== left drive ===")
                 self.showLights = [0,0,1,0,0,0] # LeftDriving
+            elif(self.signal == -1):
+                print("=== right drive ===")
+                self.showLights = [0,0,0,1,0,0] # RightDriving
 
 
         if isTurningTimeExpired:
+            if not self.isRunningPID: # Run a single time as soon as we finish turn
+                print("============= done turn ==============")
+                self.showLights = [1,0,0,0,0,0] # Driving
+
             self.isRunningPID = True
             self.omega = self.prev_omega
 
-            # self.showLights = [1,0,0,0,0,0] # Driving
-            # print("============= done turn ==============")
+
+
 
     
     def cb_checkTurn(self, msg):
@@ -314,8 +319,9 @@ class lane_follow_node(DTROS):
         # if it sees a bot don't lane follow
         self.follow = True
         # get the leader corners
+        if(len(msg.corners) == 0): return
         leader = msg.corners[-1]
-
+        
         # TODO add rules of road
 
         # do bot follow based on corners
