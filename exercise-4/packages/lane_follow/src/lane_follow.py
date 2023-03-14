@@ -165,12 +165,12 @@ class lane_follow_node(DTROS):
 
         # Stop driving at a line
         if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:   
-            self.change_led_col("BRAKE")
-            signal = 1
+            #self.change_led_col("BRAKE")
+            signal = -1
             if signal == 1:
-                self.change_led_col("CAR_SIGNAL_RIGHT")
-            elif signal == -1:
                 self.change_led_col("CAR_SIGNAL_LEFT")
+            elif signal == -1:
+                self.change_led_col("CAR_SIGNAL_RIGHT")
             else:
                 self.change_led_col("BRAKE")
 
