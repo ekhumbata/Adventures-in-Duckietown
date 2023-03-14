@@ -42,7 +42,7 @@ LED_protocol:
 
     CAR_SIGNAL_RIGHT:
       color_mask: []
-      color_list: ["white","orange","white","orange","red"]
+      color_list: ["white","white","orange","orange","red"]
       frequency_mask: [0,0,1,1,0]
       frequency: *f1
 
