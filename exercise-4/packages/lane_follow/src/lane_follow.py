@@ -50,8 +50,10 @@ class lane_follow_node(DTROS):
         self.col = String()
         self.collide = False
 
-        self.is_right_turn_detected = False
-        self.is_left_turn_detected = False
+        self.is_turning_right = False
+        self.is_turning_left = False
+        self.turning_start_time = 0
+        self.total_turning_time = 10
         
         #self.prev_range = 10
         #self.prev_t = 0
@@ -157,16 +159,31 @@ class lane_follow_node(DTROS):
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
 
-        # Stop driving at a line
-        if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:
-            # self.change_led_col("CAR_SIGNAL_RIGHT")
-            # self.change_led_col("CAR_SIGNAL_LEFT")
+        isWaitingAtStopLine = not (rospy.Time.now().to_sec() - self.stopped_t >= 5)
+        isCurrentlyTurning = self.is_turning_left or self.is_turning_right
+
+
+        # Verbose
+        print("\n====================\n",
+        "isWaitingAtStopLine:", isWaitingAtStopLine,
+        " | isTurningLeft", self.is_turning_left,
+        " | isTurningRight", self.is_turning_right,
+        "\n====================\n")
+
+        # Stop driving at a line (ignore lines if turning and also for a few seconds after we leave a line)
+        if red_y > 200 and not self.at_stop_line and (not isWaitingAtStopLine) and (not isCurrentlyTurning):
             self.change_led_col("BRAKE")
-            # print("HI")
+            print("====STOPPING====")
+
+
 
             ## Here I think is where we need to watch for what direction the lead duckiebot is turning
-            self.is_right_turn_detected = True # TODO: update these based on what is detected
-            self.is_left_turn_detected = False
+            ## Probably turn on signal light as soon as we detect this!!!
+            self.startTurningRight()  # TODO: update these based on what is detected
+            # self.startTurningLeft()
+
+
+
 
             self.at_stop_line = True
             self.prev_omega = self.omega
@@ -174,19 +191,18 @@ class lane_follow_node(DTROS):
 
 
         # If we are turning right
-        if self.is_right_turn_detected:
-            print("TURNING RIGHT")
+        if self.is_turning_right and (not isWaitingAtStopLine):
+            print("====Turning Right====")
             self.turn_right()
-            self.is_right_turn_detected = False
 
         # If we are turning left
-        if self.is_left_turn_detected:
-            print("TURNING LEFT")
-            self.is_left_turn_detected = False # set to false once we know the turn has been completed
+        if self.is_turning_left and (not isWaitingAtStopLine):
+            print("====Turning Left====")
+            self.turn_left()
 
 
         # Resume normal driving
-        if not (self.is_left_turn_detected and self.is_right_turn_detected): # Don't do normal driving when turning
+        if not (self.is_turning_left and self.is_turning_right): # Don't do normal driving when turning
             if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
 
                 # # steal the thread and turn right, then resume lanefollow
@@ -256,30 +272,36 @@ class lane_follow_node(DTROS):
         self.twist_publisher.publish(msg)
 
 
-    # This fucntion steals the thread to complete - it will run for a fixed amount of time and no other code will be able to be run
+
     def turn_right(self):
-        isCompletedTurn = False
-        cnt = 0
         # hardcodedRightTurnOmega = np.pi
-        self.change_led_col("CAR_SIGNAL_RIGHT")
+        self.change_led_col("CAR_SIGNAL_RIGHT") # idk if repeatedly setting it is causing problems, maybe just set once?
 
-        while(not isCompletedTurn):
-        #     if self.collide: # still don't run into things
-        #         self.speed = 0
-        #         hardcodedRightTurnOmega = 0
-        #     else:
-        #         self.speed = 0.3
+        # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
+        self.omega = np.pi
 
-        #     msg = Twist2DStamped()
-        #     msg.v = self.speed
-        #     msg.omega = hardcodedRightTurnOmega
 
-        #     # self.twist_publisher.publish(msg)
-            print("TURNING", cnt)
+        print("turning right. time elapsed:", rospy.Time.now().to_sec() - self.turning_start_time)
 
-            cnt += 1
-            if(cnt > 100000):
-                isCompletedTurn = True
+        # TODO: find a smarter end condition - stop turning once a certain amount of time has passed
+        isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
+        if isTurningTimeExpired:
+            self.is_turning_right = False
+
+
+    def turn_left(self):
+        pass
+
+
+
+    def startTurningRight(self):
+        self.is_turning_right = True
+        self.turning_start_time = rospy.Time.now().to_sec()
+
+
+    def startTurningLeft(self):
+        self.is_turning_left = True
+
 
 
     def pid(self, x, y, goal):
@@ -298,7 +320,7 @@ class lane_follow_node(DTROS):
 
         # integral part?
 
-        print("PID: ", diff, self.omega)
+        # print("PID: ", diff, self.omega)
 
 
 if __name__ == '__main__':
