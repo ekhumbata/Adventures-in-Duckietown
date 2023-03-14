@@ -49,6 +49,10 @@ class lane_follow_node(DTROS):
 
         self.col = String()
         self.collide = False
+
+
+        self.total_turning_time = 2
+        self.turning_start_time = 0
         
         #self.prev_range = 10
         #self.prev_t = 0
@@ -153,6 +157,9 @@ class lane_follow_node(DTROS):
         yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
+        is_turning_right = False
+
+
 
         # Stop driving at a line
         if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:
@@ -168,16 +175,15 @@ class lane_follow_node(DTROS):
         # Start driving again
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
             self.change_led_col("DRIVING")
-            print("HEY")
-
 
             self.speed = 0.3
-            self.omega = self.prev_omega
-            if np.random.randint(2, size = 1)[0] == 0:
-                print("TURN!!!!!!!!!!!!")
-                self.omega = -np.pi / 4
+            # self.omega = self.prev_omega
+            is_turning_right = True
+            self.turning_start_time = rospy.Time.now().to_sec()
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
+
+        self.turn_right(is_turning_right)
 
         # draw visulaization stuff for red stop
         image = cv2.drawContours(col_img[crop[0] : crop[1]], red_conts, -1, (45, 227, 224), 3)
@@ -228,6 +234,29 @@ class lane_follow_node(DTROS):
         msg.omega = self.omega
 
         self.twist_publisher.publish(msg)
+
+
+    def turn_right(self, turn):
+        if turn:
+            # hardcodedRightTurnOmega = np.pi
+            self.change_led_col("CAR_SIGNAL_RIGHT") # idk if repeatedly setting it is causing problems, maybe just set once?
+
+            # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
+            self.prev_omega = self.omega
+            self.omega = -5 * np.pi / 4
+            # self.at_stop_line = False
+
+
+            print("turning right. time elapsed:", rospy.Time.now().to_sec() - self.turning_start_time)
+
+        # TODO: find a smarter end condition - stop turning once a certain amount of time has passed
+        isTurningTimeExpired = rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time
+        if isTurningTimeExpired:
+            self.isRunningPID = True
+            # self.is_turning_right = False
+            self.omega = self.prev_omega
+            self.change_led_col("DRIVING")
+
 
 
     def pid(self, x, y, goal):
