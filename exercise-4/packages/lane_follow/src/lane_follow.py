@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import cv2
+from collections import deque   #import deque for faster append and pop operations
+
 
 import os
 import rospy
@@ -12,7 +14,7 @@ import random
 from sensor_msgs.msg import CameraInfo
 from duckietown_msgs.srv import ChangePattern
 from sensor_msgs.msg import CompressedImage, Range
-from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, BoolStamped
+from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, BoolStamped, VehicleCorners
 from std_msgs.msg import String, Float32
 
 
@@ -67,22 +69,28 @@ class lane_follow_node(DTROS):
         #self.prev_range = 10
         #self.prev_t = 0
 
+        self.leader_prev_x_pos = deque() #FIXME: need to init this at top of file, remove comment when done
+        self.manual_turn = False    #FIXME: need to init this at top of file, remove comment when done
+
+
         # subscribers
-        img_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/image/compressed"""
+        veh = os.environ['VEHICLE_NAME']
+        img_topic = f"""/{veh}/camera_node/image/compressed"""
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
-        self.dist_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/duckiebot_distance_node/distance", Float32, self.cb_dist, queue_size = 1)
-        self.tof_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/front_center_tof_driver_node/range", Range, self.cb_tof, queue_size = 1)
-        self.det_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/duckiebot_detection_node/detection", BoolStamped, self.cb_bot_det, queue_size = 1)
+        self.dist_sub = rospy.Subscriber(f"/{veh}/duckiebot_distance_node/distance", Float32, self.cb_dist, queue_size = 1)
+        self.tof_sub = rospy.Subscriber(f"/{veh}/front_center_tof_driver_node/range", Range, self.cb_tof, queue_size = 1)
+        self.det_sub = rospy.Subscriber(f"/{veh}/duckiebot_detection_node/detection", BoolStamped, self.cb_bot_det, queue_size = 1)
+        self.leader_sub = rospy.Subscriber(f"/{veh}/duckiebot_detection_node/centers", VehicleCorners, self.cb_checkTurn)
 
         # publishers
         self.img_publisher = rospy.Publisher('/masked_image/compressed', CompressedImage)
 
-        twist_topic = f"/{os.environ['VEHICLE_NAME']}/car_cmd_switch_node/cmd"
+        twist_topic = f"/{veh}/car_cmd_switch_node/cmd"
         self.twist_publisher = rospy.Publisher(twist_topic, Twist2DStamped, queue_size=1)
 
         # services
-        led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
-        os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {os.environ['VEHICLE_NAME']} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
+        led_topic = "/%s" % veh + "/led_emitter_node/set_pattern"
+        os.system(f"dts duckiebot demo --demo_name led_emitter_node --duckiebot_name {veh} --package_name led_emitter --image duckietown/dt-core:daffy-arm64v8 && echo RAN LIGHTING DEMO")
         rospy.wait_for_service(led_topic)
         self.change_led = rospy.ServiceProxy(led_topic, ChangePattern)
         self.change_led_col("DRIVING")
@@ -112,14 +120,16 @@ class lane_follow_node(DTROS):
         return x, y, w, h, conts
         
     def change_led_col(self, col):
-        self.col.data = col
+        # self.col.data = col
+        self.col.data = "LIGHT_OFF"
 
     def pub_col(self):
         self.change_led(self.col)
 
 
     def cb_bot_det(self, msg):
-        # print(msg.data)
+        print(msg.data)
+        self.follow = msg.data
         if not msg.data:
             self.collide = False
     
@@ -225,8 +235,11 @@ class lane_follow_node(DTROS):
 
         # if only move the bot if drive is true
         if not self.at_stop_line and rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time:
-            # American driver
-            self.pid(yellow_x, yellow_y + yellow_h//2, len(image[i]) // 2) 
+            # if not following another bot lane follow
+            if not self.follow:
+                self.pid(yellow_x, yellow_y + yellow_h//2, len(image[i]) // 2) 
+
+            
             #English Driver
             #self.pid(yellow_x, yellow_y - yellow_h//2, len(image[i]) // 2) 
         
@@ -285,6 +298,50 @@ class lane_follow_node(DTROS):
             # self.showLights = [1,0,0,0,0,0] # Driving
             # print("============= done turn ==============")
 
+    
+    def cb_checkTurn(self, msg):
+        """
+        This function checks to see if the duckiebot needs to turn.
+        Pass in the next x value given from the duckiebot_detection_node.
+
+        This function sets self.manual_turn to true/false if a manual turn is necessary.
+        
+        NOTE: self.manual_turn should be reset after the turn is complete in another method.
+
+        self: the class object
+        msg: the object containing detection data
+        """
+        # if it sees a bot don't lane follow
+        self.follow = True
+        # get the leader corners
+        leader = msg.corners[-1]
+
+        # TODO add rules of road
+
+        # do bot follow based on corners
+        self.follow_pid(leader.x, leader.y)
+
+        # detects leaders prev turn and follow suite
+
+        # only update if leader is detected
+        # if len(self.leader_prev_x_pos) >= 2:
+        #     #we only want to see the range over ~10 values since we should see a large change within those 10, remove oldest item from queue if over 10
+        #     if(len(self.leader_prev_x_pos) > 10):
+        #         self.leader_prev_x_pos.popleft()
+        #     self.leader_prev_x_pos.append(msg.corners[-1].x)
+
+        #     #print(self.leader_prev_x_pos)
+
+        #     #if there is a large change, return true.
+        #     #FIXME: 40 is a estimate number, should be tweaked later
+        #     change = max(self.leader_prev_x_pos) - min(self.leader_prev_x_pos)
+        #     print(f"CHANGE IN X: {change}")
+        #     if abs(change) > 40:
+        #         self.turn(True)
+        #         self.signal = change / abs(change)
+        # else:
+        #     for i in range(len(self.leader_prev_x_pos)):
+        #         self.leader_prev_x_pos.pop()
 
 
     def pid(self, x, y, goal):
@@ -304,6 +361,19 @@ class lane_follow_node(DTROS):
         # integral part?
 
         # print("PID: ", diff, self.omega)
+
+    
+# x: 350, y: 156
+
+    def follow_pid(self, x, y, goal = [350, 156]):
+        scale_for_pixel_area = 0.02
+        diff = (x - goal[0]) * scale_for_pixel_area  
+        self.omega = -self.PID[0] * diff
+
+        # diff = (y - goal[1]) * scale_for_pixel_area
+        # self.speed -= diff
+        self.speed = 0.3
+        print(f"using folow speed: {self.speed}, omega: {self.omega}")
 
 
 if __name__ == '__main__':
