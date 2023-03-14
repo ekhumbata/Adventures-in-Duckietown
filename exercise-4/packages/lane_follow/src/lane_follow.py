@@ -157,16 +157,22 @@ class lane_follow_node(DTROS):
         yellow_x, yellow_y, yellow_w, yellow_h, yellow_conts = self.lane_logic(yellow_imagemask)
         red_x, red_y, red_w, red_h, red_conts = self.lane_logic(red_imagemask)
 
-        is_turning_right = False
+        # 0 -> straight; -1 -> right; 1 -> left
+        signal = 0
+        is_turning = False
 
 
 
         # Stop driving at a line
-        if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:
-            # self.change_led_col("CAR_SIGNAL_RIGHT")
-            # self.change_led_col("CAR_SIGNAL_LEFT")
+        if red_y > 200 and not self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 5:   
             self.change_led_col("BRAKE")
-            print("HI")
+            signal = 1
+            if signal == 1:
+                self.change_led_col("CAR_SIGNAL_RIGHT")
+            elif signal == -1:
+                self.change_led_col("CAR_SIGNAL_LEFT")
+            else:
+                self.change_led_col("BRAKE")
 
             self.at_stop_line = True
             self.prev_omega = self.omega
@@ -178,13 +184,13 @@ class lane_follow_node(DTROS):
 
             self.speed = 0.3
             # self.omega = self.prev_omega
-            is_turning_right = True
+            is_turning = True
             self.turning_start_time = rospy.Time.now().to_sec()
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
 
-        self.turn(is_turning_right, -1)
-        self.turn(is_turning_left, 1)
+        self.turn(is_turning_right, signal)
+
 
         # draw visulaization stuff for red stop
         image = cv2.drawContours(col_img[crop[0] : crop[1]], red_conts, -1, (45, 227, 224), 3)
