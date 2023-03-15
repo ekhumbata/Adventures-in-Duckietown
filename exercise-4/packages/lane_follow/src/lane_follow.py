@@ -124,8 +124,8 @@ class lane_follow_node(DTROS):
         return x, y, w, h, conts
         
     def change_led_col(self, col):
-        #self.col.data = col
-         self.col.data = "LIGHT_OFF"
+        self.col.data = col
+        #  self.col.data = "LIGHT_OFF"
 
     def pub_col(self):
         self.change_led(self.col)
@@ -207,9 +207,10 @@ class lane_follow_node(DTROS):
             self.stopped_t = rospy.Time.now().to_sec()
 
         # Start driving again
-        if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2 and not self.follow:
-            print("=== drive ===")
-            self.showLights = [1,0,0,0,0,0] # Driving
+        if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
+            # print("=== drive ===")
+            # self.showLights = [1,0,0,0,0,0] # Driving
+            # self.signal = 0 # We're done turning - don't turn at next stop
 
             self.speed = 0.3
             # self.omega = self.prev_omega
@@ -283,7 +284,7 @@ class lane_follow_node(DTROS):
         if isTurn:
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
-            self.omega = (np.pi / 2) * self.signal
+            self.omega = (np.pi) * self.signal
             self.turning_start_time = rospy.Time.now().to_sec()
             self.isRunningPID = False
 
@@ -316,6 +317,7 @@ class lane_follow_node(DTROS):
             if not self.isRunningPID: # Run a single time as soon as we finish turn
                 print("============= done turn ==============")
                 self.showLights = [1,0,0,0,0,0] # Driving
+                self.signal = 0 # We're done turning - don't turn at next stop
             self.isRunningPID = True
             self.omega = self.prev_omega
 
@@ -389,6 +391,7 @@ class lane_follow_node(DTROS):
         # integral part?
 
         # print("PID: ", diff, self.omega)
+        print(f"LANE FOLLOW: using folow speed: {self.speed}, omega: {self.omega}")
 
     
 # x: 350, y: 156
@@ -401,7 +404,7 @@ class lane_follow_node(DTROS):
         # diff = (y - goal[1]) * scale_for_pixel_area
         # self.speed -= diff
         self.speed = 0.3
-        print(f"using folow speed: {self.speed}, omega: {self.omega}")
+        print(f"LEADER FOLLOW: using folow speed: {self.speed}, omega: {self.omega}")
 
 
 if __name__ == '__main__':

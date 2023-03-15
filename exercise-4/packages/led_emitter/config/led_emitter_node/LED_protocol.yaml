@@ -3,6 +3,7 @@ LED_protocol:
   colors: # All triplets should be ordered [R,G,B]
     switchedoff: [0,0,0]
     white: [1,1,1]
+    dimwhite: [0.25,0.25,0.25]
     green: [0,1,0]
     red: [1,0,0]
     dimred: [0.25,0,0]
@@ -24,47 +25,47 @@ LED_protocol:
   signals:
     CAR_SIGNAL_LEFT_BRAKE:
       color_mask: []
-      # color_list: ["orange","white","white","red","orange"] #30
-      # frequency_mask: [1,0,0,0,1]
-      color_list: ["orange","white","orange","red","white"] #04
-      frequency_mask: [1,0,1,0,0]
+      color_list: ["orange","dimwhite","dimwhite","red","orange"] #30
+      frequency_mask: [1,0,0,0,1]
+      # color_list: ["orange","dimwhite","orange","red","dimwhite"] #04
+      # frequency_mask: [1,0,1,0,0]
       frequency: *f1
 
     CAR_SIGNAL_RIGHT_BRAKE:
       color_mask: []
-      # color_list: ["white","white","orange","orange","red"] #30
-      # frequency_mask: [0,0,1,1,0]
-      color_list: ["white","orange","red","orange","white"] #04
-      frequency_mask: [0,1,0,1,0]
+      color_list: ["dimwhite","dimwhite","orange","orange","red"] #30
+      frequency_mask: [0,0,1,1,0]
+      # color_list: ["dimwhite","orange","red","orange","dimwhite"] #04
+      # frequency_mask: [0,1,0,1,0]
       frequency: *f1
 
     CAR_SIGNAL_LEFT_DRIVE:
       color_mask: []
-      # color_list: ["orange","white","white","dimred","orange"] #30
-      # frequency_mask: [1,0,0,0,1]
-      color_list: ["orange","white","orange","dimred","white"] #04
-      frequency_mask: [1,0,1,0,0]
+      color_list: ["orange","dimwhite","dimwhite","dimred","orange"] #30
+      frequency_mask: [1,0,0,0,1]
+      # color_list: ["orange","dimwhite","orange","dimred","dimwhite"] #04
+      # frequency_mask: [1,0,1,0,0]
       frequency: *f1
 
     CAR_SIGNAL_RIGHT_DRIVE:
       color_mask: []
-      # color_list: ["white","white","orange","orange","dimred"] #30
-      # frequency_mask: [0,0,1,1,0]
-      color_list: ["white","orange","dimred","orange","white"] #04
-      frequency_mask: [0,1,0,1,0]
+      color_list: ["dimwhite","dimwhite","orange","orange","dimred"] #30
+      frequency_mask: [0,0,1,1,0]
+      # color_list: ["dimwhite","orange","dimred","orange","dimwhite"] #04
+      # frequency_mask: [0,1,0,1,0]
       frequency: *f1
 
     DRIVING:
       color_mask: []
-      # color_list: ["white","white","white","dimred","dimred"] #30
-      color_list: ["white","white","dimred","dimred","white"] #04
+      color_list: ["dimwhite","dimwhite","dimwhite","dimred","dimred"] #30
+      # color_list: ["dimwhite","dimwhite","dimred","dimred","dimwhite"] #04
       frequency_mask: []
       frequency:  0
 
     BRAKE:
       color_mask: []
-      # color_list: ["white","white","white","red","red"] #30
-      color_list: ["white","white","red","red","white"] #04
+      color_list: ["dimwhite","dimwhite","dimwhite","red","red"] #30
+      # color_list: ["dimwhite","dimwhite","red","red","dimwhite"] #04
       frequency_mask: []
       frequency: 0
 
