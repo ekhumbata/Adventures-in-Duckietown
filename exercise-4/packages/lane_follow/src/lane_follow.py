@@ -29,8 +29,8 @@ class lane_follow_node(DTROS):
         self.run = True
 
         # hsv color values to mask for yellow
-        self.yellow_upper = np.array([35, 255, 255]) 
-        self.yellow_lower = np.array([20, 45, 25])
+        self.yellow_upper = np.array([50, 255, 255]) 
+        self.yellow_lower = np.array([20, 60, 0])
 
         #hsv colour values to mask for red
         self.red_upper = np.array([185, 175, 242])  #[0, 107, 179]
@@ -42,7 +42,7 @@ class lane_follow_node(DTROS):
         self.at_stop_line = False
         self.speed = 0.3        #current speed of bot
         self.omega = 0          #current angle bot is at
-        self.size_ratio = 0.8   #distance from centre of duckiebot to dotted line
+        self.size_ratio = 0.6   #distance from centre of duckiebot to dotted line
 
         #used for the PID control
         self.prev_time = 0      #last time stamp for PID
@@ -114,7 +114,7 @@ class lane_follow_node(DTROS):
         conts = [largest]
         
         #ignore the largest stripe if it is too close to the bot
-        # if y > 100:
+        # if y > 100 and len(contours) > 2:
         #     contours.remove(largest)
         #     largest = max(contours, key = cv2.contourArea)
         #     conts.append(largest)
@@ -205,10 +205,9 @@ class lane_follow_node(DTROS):
             self.speed = 0
             self.prev_omega = self.omega
             self.stopped_t = rospy.Time.now().to_sec()
-            print("###############STOP###################", self.at_stop_line)
 
         # Start driving again
-        if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
+        if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2 and not self.follow:
             print("=== drive ===")
             self.showLights = [1,0,0,0,0,0] # Driving
 
@@ -352,24 +351,25 @@ class lane_follow_node(DTROS):
         # detects leaders prev turn and follow suite
 
         # only update if leader is detected
-        # if len(self.leader_prev_x_pos) >= 2:
-        #     #we only want to see the range over ~10 values since we should see a large change within those 10, remove oldest item from queue if over 10
-        #     if(len(self.leader_prev_x_pos) > 10):
-        #         self.leader_prev_x_pos.popleft()
-        #     self.leader_prev_x_pos.append(msg.corners[-1].x)
+        if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
+            if len(self.leader_prev_x_pos) >= 2:
+                #we only want to see the range over ~10 values since we should see a large change within those 10, remove oldest item from queue if over 10
+                if(len(self.leader_prev_x_pos) > 10):
+                    self.leader_prev_x_pos.popleft()
+                self.leader_prev_x_pos.append(msg.corners[-1].x)
 
-        #     #print(self.leader_prev_x_pos)
+                #print(self.leader_prev_x_pos)
 
-        #     #if there is a large change, return true.
-        #     #FIXME: 40 is a estimate number, should be tweaked later
-        #     change = max(self.leader_prev_x_pos) - min(self.leader_prev_x_pos)
-        #     print(f"CHANGE IN X: {change}")
-        #     if abs(change) > 40:
-        #         self.turn(True)
-        #         self.signal = change / abs(change)
-        # else:
-        #     for i in range(len(self.leader_prev_x_pos)):
-        #         self.leader_prev_x_pos.pop()
+                #if there is a large change, return true.
+                #FIXME: 40 is a estimate number, should be tweaked later
+                change = max(self.leader_prev_x_pos) - min(self.leader_prev_x_pos)
+                print(f"CHANGE IN X: {change}")
+                if abs(change) > 40:
+                    self.turn(True)
+                    self.signal = change / abs(change)
+            else:
+                for i in range(len(self.leader_prev_x_pos)):
+                    self.leader_prev_x_pos.pop()
 
 
     def pid(self, x, y, goal):
