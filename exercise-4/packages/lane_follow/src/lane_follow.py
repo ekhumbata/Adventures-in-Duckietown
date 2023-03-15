@@ -29,8 +29,8 @@ class lane_follow_node(DTROS):
         self.run = True
 
         # hsv color values to mask for yellow
-        self.yellow_upper = np.array([35, 255, 255]) 
-        self.yellow_lower = np.array([20, 45, 25])
+        self.yellow_upper = np.array([50, 255, 255])
+        self.yellow_lower = np.array([20, 60, 0])
 
         #hsv colour values to mask for red
         self.red_upper = np.array([185, 175, 242])  #[0, 107, 179]
@@ -113,8 +113,8 @@ class lane_follow_node(DTROS):
         x,y,w,h = cv2.boundingRect(largest)
         conts = [largest]
         
-        # ignore the largest stripe if it is too close to the bot
-        # if y > 200:
+        #ignore the largest stripe if it is too close to the bot
+        # if y > 100:
         #     contours.remove(largest)
         #     largest = max(contours, key = cv2.contourArea)
         #     conts.append(largest)
@@ -124,8 +124,8 @@ class lane_follow_node(DTROS):
         return x, y, w, h, conts
         
     def change_led_col(self, col):
-        #self.col.data = col
-         self.col.data = "LIGHT_OFF"
+        self.col.data = col
+        #  self.col.data = "LIGHT_OFF"
 
     def pub_col(self):
         self.change_led(self.col)
@@ -141,7 +141,7 @@ class lane_follow_node(DTROS):
         d = msg.data
         if d < 0.4:
             self.collide = True
-            self.at_stop_line = True
+            #self.at_stop_line = True
             self.prev_omega = self.omega
         else:
             self.collide = False
@@ -191,7 +191,8 @@ class lane_follow_node(DTROS):
 
             # Choose random direction to turn from valid list
             # self.signal = random.choice([-1, 0, 1])
-            self.signal = random.choice(self.validNextTurnOptions)
+            #self.signal = random.choice(self.validNextTurnOptions)
+            self.signal = random.choice([0])
 
 
             if(self.signal == 1):
@@ -208,14 +209,17 @@ class lane_follow_node(DTROS):
 
         # Start driving again
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
-            print("=== drive ===")
-            self.showLights = [1,0,0,0,0,0] # Driving
+            # print("=== drive ===")
+            # self.showLights = [1,0,0,0,0,0] # Driving
+            # self.signal = 0 # We're done turning - don't turn at next stop
 
             self.speed = 0.3
             # self.omega = self.prev_omega
             is_turning = True
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
+            self.isRunningPID = True
+            self.omega = self.prev_omega
 
         self.turn(is_turning)
 
@@ -281,18 +285,22 @@ class lane_follow_node(DTROS):
         if isTurn:
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
-            self.omega = (np.pi / 2) * self.signal
+            self.omega = (3*np.pi/4) * self.signal
             self.turning_start_time = rospy.Time.now().to_sec()
             self.isRunningPID = False
 
 
             # Update valid turn options based on possible moves
             if(self.signal == 1):
-                if(self.validNextTurnOptions.contains(0)): self.validNextTurnOptions = [-1, 1] # If we turned and last options contained straight, we must be in middle
-                else: self.validNextTurnOptions = [0, 1] # Otherwise, we must have turned onto a straightaway
+                if(self.validNextTurnOptions.contains(0)): 
+                    self.validNextTurnOptions = [-1, 1] # If we turned and last options contained straight, we must be in middle
+                else: 
+                    self.validNextTurnOptions = [0, 1] # Otherwise, we must have turned onto a straightaway
             if(self.signal == -1):
-                if(self.validNextTurnOptions.contains(0)): self.validNextTurnOptions = [-1, 1]
-                else: self.validNextTurnOptions = [-1, 0]
+                if(self.validNextTurnOptions.contains(0)): 
+                    self.validNextTurnOptions = [-1, 1]
+                else: 
+                    self.validNextTurnOptions = [-1, 0]
 
 
         # Stop turning once a certain amount of time has passed and resume lane follow
@@ -310,7 +318,7 @@ class lane_follow_node(DTROS):
             if not self.isRunningPID: # Run a single time as soon as we finish turn
                 print("============= done turn ==============")
                 self.showLights = [1,0,0,0,0,0] # Driving
-
+                self.signal = 0 # We're done turning - don't turn at next stop
             self.isRunningPID = True
             self.omega = self.prev_omega
 
@@ -339,6 +347,7 @@ class lane_follow_node(DTROS):
         # TODO add rules of road
 
         # do bot follow based on corners
+        print(f"follow pid: {not self.at_stop_line}")
         if not self.at_stop_line and rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time:
             self.follow_pid(leader.x, leader.y)
 
@@ -382,6 +391,7 @@ class lane_follow_node(DTROS):
         # integral part?
 
         # print("PID: ", diff, self.omega)
+        print(f"LANE FOLLOW: using folow speed: {self.speed}, omega: {self.omega}")
 
     
 # x: 350, y: 156
@@ -394,7 +404,7 @@ class lane_follow_node(DTROS):
         # diff = (y - goal[1]) * scale_for_pixel_area
         # self.speed -= diff
         self.speed = 0.3
-        print(f"using folow speed: {self.speed}, omega: {self.omega}")
+        print(f"LEADER FOLLOW: using folow speed: {self.speed}, omega: {self.omega}")
 
 
 if __name__ == '__main__':
