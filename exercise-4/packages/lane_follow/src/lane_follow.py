@@ -124,8 +124,8 @@ class lane_follow_node(DTROS):
         return x, y, w, h, conts
         
     def change_led_col(self, col):
-        #self.col.data = col
-         self.col.data = "LIGHT_OFF"
+        self.col.data = col
+        #  self.col.data = "LIGHT_OFF"
 
     def pub_col(self):
         self.change_led(self.col)
@@ -211,6 +211,7 @@ class lane_follow_node(DTROS):
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
             print("=== drive ===")
             self.showLights = [1,0,0,0,0,0] # Driving
+            self.signal = 0 # We're done turning - don't turn at next stop
 
             self.speed = 0.3
             # self.omega = self.prev_omega
