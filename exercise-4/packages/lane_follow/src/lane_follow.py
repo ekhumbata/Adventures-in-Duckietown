@@ -29,8 +29,8 @@ class lane_follow_node(DTROS):
         self.run = True
 
         # hsv color values to mask for yellow
-        self.yellow_upper = np.array([35, 255, 255]) 
-        self.yellow_lower = np.array([20, 45, 25])
+        self.yellow_upper = np.array([50, 255, 255])
+        self.yellow_lower = np.array([20, 60, 0])
 
         #hsv colour values to mask for red
         self.red_upper = np.array([185, 175, 242])  #[0, 107, 179]
@@ -285,7 +285,7 @@ class lane_follow_node(DTROS):
         if isTurn:
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
-            self.omega = (np.pi / 2) * self.signal
+            self.omega = (np.pi) * self.signal
             self.turning_start_time = rospy.Time.now().to_sec()
             self.isRunningPID = False
 
@@ -391,6 +391,7 @@ class lane_follow_node(DTROS):
         # integral part?
 
         # print("PID: ", diff, self.omega)
+        print(f"LANE FOLLOW: using folow speed: {self.speed}, omega: {self.omega}")
 
     
 # x: 350, y: 156
@@ -403,7 +404,7 @@ class lane_follow_node(DTROS):
         # diff = (y - goal[1]) * scale_for_pixel_area
         # self.speed -= diff
         self.speed = 0.3
-        print(f"using folow speed: {self.speed}, omega: {self.omega}")
+        print(f"LEADER FOLLOW: using folow speed: {self.speed}, omega: {self.omega}")
 
 
 if __name__ == '__main__':
