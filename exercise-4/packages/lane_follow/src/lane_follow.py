@@ -209,9 +209,9 @@ class lane_follow_node(DTROS):
 
         # Start driving again
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
-            print("=== drive ===")
-            self.showLights = [1,0,0,0,0,0] # Driving
-            self.signal = 0 # We're done turning - don't turn at next stop
+            # print("=== drive ===")
+            # self.showLights = [1,0,0,0,0,0] # Driving
+            # self.signal = 0 # We're done turning - don't turn at next stop
 
             self.speed = 0.3
             # self.omega = self.prev_omega
@@ -318,6 +318,7 @@ class lane_follow_node(DTROS):
             if not self.isRunningPID: # Run a single time as soon as we finish turn
                 print("============= done turn ==============")
                 self.showLights = [1,0,0,0,0,0] # Driving
+                self.signal = 0 # We're done turning - don't turn at next stop
             self.isRunningPID = True
             self.omega = self.prev_omega
 
