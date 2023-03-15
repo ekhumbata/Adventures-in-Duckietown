@@ -124,8 +124,8 @@ class lane_follow_node(DTROS):
         return x, y, w, h, conts
         
     def change_led_col(self, col):
-        self.col.data = col
-        # self.col.data = "LIGHT_OFF"
+        #self.col.data = col
+         self.col.data = "LIGHT_OFF"
 
     def pub_col(self):
         self.change_led(self.col)
@@ -201,8 +201,10 @@ class lane_follow_node(DTROS):
 
 
             self.at_stop_line = True
+            self.speed = 0
             self.prev_omega = self.omega
             self.stopped_t = rospy.Time.now().to_sec()
+            print("###############STOP###################", self.at_stop_line)
 
         # Start driving again
         if self.at_stop_line and rospy.Time.now().to_sec() - self.stopped_t >= 2:
@@ -261,6 +263,7 @@ class lane_follow_node(DTROS):
     # control the speed and angle of the bot
     def twist_pub(self):
         if self.at_stop_line or self.collide:
+            print("STOPED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             self.speed = 0
             self.omega = 0
         else:
@@ -330,13 +333,14 @@ class lane_follow_node(DTROS):
         # if it sees a bot don't lane follow
         self.follow = True
         # get the leader corners
-        if(len(msg.corners) == 0): return
+        #if(len(msg.corners) == 0): return
         leader = msg.corners[-1]
         
         # TODO add rules of road
 
         # do bot follow based on corners
-        self.follow_pid(leader.x, leader.y)
+        if not self.at_stop_line and rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time:
+            self.follow_pid(leader.x, leader.y)
 
         # detects leaders prev turn and follow suite
 

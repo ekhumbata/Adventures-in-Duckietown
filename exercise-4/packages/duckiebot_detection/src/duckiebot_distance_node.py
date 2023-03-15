@@ -31,7 +31,7 @@ class DuckiebotDistanceNode(DTROS):
         
         #Maximum tolerable reprojection error.
         #If a reprojection error higher than that is observed. May require some actions
-        self.max_reproj_pixelerror_pose_estimation = 1.5
+        self.max_reproj_pixelerror_pose_estimation = 2
 
 
         self.bridge = CvBridge()
