@@ -113,8 +113,8 @@ class lane_follow_node(DTROS):
         x,y,w,h = cv2.boundingRect(largest)
         conts = [largest]
         
-        # ignore the largest stripe if it is too close to the bot
-        # if y > 200:
+        #ignore the largest stripe if it is too close to the bot
+        # if y > 100:
         #     contours.remove(largest)
         #     largest = max(contours, key = cv2.contourArea)
         #     conts.append(largest)
@@ -141,7 +141,7 @@ class lane_follow_node(DTROS):
         d = msg.data
         if d < 0.4:
             self.collide = True
-            self.at_stop_line = True
+            #self.at_stop_line = True
             self.prev_omega = self.omega
         else:
             self.collide = False
@@ -191,7 +191,8 @@ class lane_follow_node(DTROS):
 
             # Choose random direction to turn from valid list
             # self.signal = random.choice([-1, 0, 1])
-            self.signal = random.choice(self.validNextTurnOptions)
+            #self.signal = random.choice(self.validNextTurnOptions)
+            self.signal = random.choice([-1])
 
 
             if(self.signal == 1):
@@ -216,6 +217,8 @@ class lane_follow_node(DTROS):
             is_turning = True
             self.at_stop_line = False
             self.stopped_t = rospy.Time.now().to_sec()
+            self.isRunningPID = True
+            self.omega = self.prev_omega
 
         self.turn(is_turning)
 
@@ -288,11 +291,15 @@ class lane_follow_node(DTROS):
 
             # Update valid turn options based on possible moves
             if(self.signal == 1):
-                if(self.validNextTurnOptions.contains(0)): self.validNextTurnOptions = [-1, 1] # If we turned and last options contained straight, we must be in middle
-                else: self.validNextTurnOptions = [0, 1] # Otherwise, we must have turned onto a straightaway
+                if(self.validNextTurnOptions.contains(0)): 
+                    self.validNextTurnOptions = [-1, 1] # If we turned and last options contained straight, we must be in middle
+                else: 
+                    self.validNextTurnOptions = [0, 1] # Otherwise, we must have turned onto a straightaway
             if(self.signal == -1):
-                if(self.validNextTurnOptions.contains(0)): self.validNextTurnOptions = [-1, 1]
-                else: self.validNextTurnOptions = [-1, 0]
+                if(self.validNextTurnOptions.contains(0)): 
+                    self.validNextTurnOptions = [-1, 1]
+                else: 
+                    self.validNextTurnOptions = [-1, 0]
 
 
         # Stop turning once a certain amount of time has passed and resume lane follow
@@ -310,7 +317,6 @@ class lane_follow_node(DTROS):
             if not self.isRunningPID: # Run a single time as soon as we finish turn
                 print("============= done turn ==============")
                 self.showLights = [1,0,0,0,0,0] # Driving
-
             self.isRunningPID = True
             self.omega = self.prev_omega
 
@@ -339,6 +345,7 @@ class lane_follow_node(DTROS):
         # TODO add rules of road
 
         # do bot follow based on corners
+        print(f"follow pid: {not self.at_stop_line}")
         if not self.at_stop_line and rospy.Time.now().to_sec() - self.turning_start_time >= self.total_turning_time:
             self.follow_pid(leader.x, leader.y)
 
