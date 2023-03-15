@@ -192,7 +192,7 @@ class lane_follow_node(DTROS):
             # Choose random direction to turn from valid list
             # self.signal = random.choice([-1, 0, 1])
             #self.signal = random.choice(self.validNextTurnOptions)
-            self.signal = random.choice([-1])
+            self.signal = random.choice([0])
 
 
             if(self.signal == 1):
@@ -285,7 +285,7 @@ class lane_follow_node(DTROS):
         if isTurn:
             # this is basically it - just nudge the bot extra in the right direction and hope it gets to where it should approximately
             self.prev_omega = self.omega
-            self.omega = (np.pi) * self.signal
+            self.omega = (3*np.pi/4) * self.signal
             self.turning_start_time = rospy.Time.now().to_sec()
             self.isRunningPID = False
 
