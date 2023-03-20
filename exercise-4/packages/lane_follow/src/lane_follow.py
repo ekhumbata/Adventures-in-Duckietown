@@ -192,7 +192,7 @@ class lane_follow_node(DTROS):
             # Choose random direction to turn from valid list
             # self.signal = random.choice([-1, 0, 1])
             #self.signal = random.choice(self.validNextTurnOptions)
-            self.signal = random.choice([-1])
+            self.signal = random.choice([0])
 
 
             if(self.signal == 1):
@@ -271,6 +271,7 @@ class lane_follow_node(DTROS):
             self.omega = 0
         else:
             self.speed = 0.3
+        print(f"PUB: {self.omega}")
         msg = Twist2DStamped()
         msg.v = self.speed
         msg.omega = self.omega
@@ -372,6 +373,7 @@ class lane_follow_node(DTROS):
             else:
                 for i in range(len(self.leader_prev_x_pos)):
                     self.leader_prev_x_pos.pop()
+            self.at_stop_line = False
 
 
     def pid(self, x, y, goal):
@@ -415,7 +417,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown() and node.run:
         node.img_pub()
         node.twist_pub()
-        node.pub_col()
+        #node.pub_col()
         #node.change_led_to(node.curr_col)
         rate.sleep()
     
