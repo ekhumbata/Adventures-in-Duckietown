@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import dt_apriltags
-import argparse
 import cv2
 import tf
 
@@ -11,8 +10,7 @@ import numpy as np
 
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import String, Float32, Bool, Int8
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import Float32, Bool, Int32
 
 
 
@@ -54,7 +52,7 @@ class apriltag_node(DTROS):
         self.pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/grey_img/compressed', CompressedImage, queue_size=1)
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/num_img/compressed', CompressedImage, queue_size=1)
         self.dist_from_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/dist_from_april', Float32, queue_size=1)
-        self.april_id = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_id', Int8, queue_size=1)
+        self.april_id = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_id', Int32, queue_size=1)
 
 
     def camera_info_callback(self, msg):
@@ -124,7 +122,7 @@ class apriltag_node(DTROS):
             self.new_num = False
 
     def pub_id(self):
-        msg = Int8()
+        msg = Int32()
         msg.data = self.prev_tag
 
         self.april_id.publish(msg)
@@ -266,5 +264,6 @@ if __name__ == '__main__':
         node.pub_num()
         node.detect_tag()
         node.dist_pub()
+        node.pub_id()
         rate.sleep()
     

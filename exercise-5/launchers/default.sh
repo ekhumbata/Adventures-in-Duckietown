@@ -14,7 +14,7 @@ dt-launchfile-init
 
 # launching app
 # dt-exec roslaunch led_emitter led_emitter_node.launch veh:=$VEHICLE_NAME
-#dt-exec roslaunch apriltag apriltag.launch veh:=$VEHICLE_NAME
+dt-exec roslaunch apriltag apriltag.launch veh:=$VEHICLE_NAME
 dt-exec roslaunch lane_follow lane_follow_node.launch veh:=$VEHICLE_NAME
 # dt-exec roslaunch deadreckoning deadreckoning_node.launch veh:=$VEHICLE_NAME
 

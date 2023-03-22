@@ -11,7 +11,7 @@ import numpy as np
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
 
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
-DEBUG = True
+DEBUG = False
 ENGLISH = False
 
 class LaneFollowNode(DTROS):

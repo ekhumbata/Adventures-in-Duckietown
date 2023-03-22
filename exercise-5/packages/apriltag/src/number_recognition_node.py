@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
-import dt_apriltags
-import argparse
 import cv2
-import tf
 
 import os
 import rospy
 from duckietown.dtros import DTROS, NodeType
 import numpy as np
 
-from sensor_msgs.msg import CameraInfo
-from duckietown_msgs.srv import ChangePattern
-from duckietown_msgs.msg import LEDPattern
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import Int8, String
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import Int32, Int8
 
 # imports for NN
 import torch
@@ -123,11 +116,15 @@ class num_recog_node(DTROS):
         self.run_fwd = False
         self.num_img = np.array([])
         self.num = -1
+        self.dict_tag = {}
+        self.curr_tag = None
+        self.verified = set()
 
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/num_img/compressed"""
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
+        self.id_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/april_id", Int32, self.cb_tag, queue_size = 1)
 
         # publishers
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/predicted_num', Int8, queue_size=1)
@@ -143,9 +140,12 @@ class num_recog_node(DTROS):
         self.run_fwd = True
         self.num_img = img
 
+    def cb_tag(self, msg):
+         self.curr_tag = msg.data
+
     def get_num(self):
-        # only run fwd pass if and image has been detected
-        if self.run_fwd:
+        # only run fwd pass if and image has been detected and the current tag has not been verified
+        if self.run_fwd and not self.curr_tag in self.verified:
             print("RUNNING FWD PASS...")
             t0 = time.time()
             with torch.no_grad():
@@ -160,6 +160,34 @@ class num_recog_node(DTROS):
             print(f"predicted digit: {pred}, with {y_prob[0][pred] * 100}% certianty, in {(time.time() - t0) * 100} secs")
             self.num = int(pred)
             self.run_fwd = False
+
+            
+            # if has already been seen
+            if self.curr_tag in self.dict_tag:
+                print("WHERE")
+                # if it has already been predicted as pred add one to the counter
+                if pred in self.dict_tag[self.curr_tag]:
+                    print("HERE")
+                    self.dict_tag[self.curr_tag][pred] += 1
+                    # if it has been predicted as pred 3 times it can be considered verified
+                    if self.dict_tag[self.curr_tag][pred] == 3:
+                        self.verified.add(self.curr_tag)
+                # if this is a new prediction set a new pred counter to 1
+                else:
+                    print("THERE")
+                    self.dict_tag[self.curr_tag][pred] = 1
+            # if this tag has never been seen create a new pred counter dict
+            else:
+                self.dict_tag[self.curr_tag] = {pred: 1}
+            print(self.dict_tag, self.verified)
+    # dont need this 
+        # loop through each tag, and check if it can be verified
+        # for k, v in self.dict_tag.items():
+        #      if k not in self.verified:
+        #         for i in v:
+        #             if max(v, key=v.values()) > 3:
+        #                 self.verified.add(k)
+
 
     # always publish -1 until a number has been detected then publish that number
     def pub_num(self):
