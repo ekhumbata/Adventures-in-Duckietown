@@ -181,7 +181,9 @@ class apriltag_node(DTROS):
 
     def dist_pub(self):
         msg = Float32()
-        msg.data = self.dist_from_april
+        msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
+
+        print("dist published:", self.dist_from_april, "m")
 
         self.dist_from_pub.publish(msg)
 
@@ -314,7 +316,7 @@ class apriltag_node(DTROS):
             self.q = self._matrix_to_quaternion(tag.pose_R)
             self.p = tag.pose_t.T[0]
 
-            print("p:", self.p, "q:", self.q)
+            # print("p:", self.p, "q:", self.q)
         
 
             # publish tf
@@ -327,7 +329,7 @@ class apriltag_node(DTROS):
             )
 
         # set the dist from april to the dist to the april tag
-        self.dist_from_april = self.p[0] # just the camera x dist
+        self.dist_from_april = self.p[2] # just the camera x dist
 
         # draw a box around the closest number
         cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
