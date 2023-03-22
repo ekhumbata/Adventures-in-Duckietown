@@ -327,13 +327,17 @@ class apriltag_node(DTROS):
             )
 
         # set the dist from april to the dist to the april tag
-        self.dist_from_april = 45
+        self.dist_from_april = self.p[0] # just the camera x dist
 
         # draw a box around the closest number
         cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
         cv2.line(img, num_bottom_left, num_bottom_right, num_col, 2)
         cv2.line(img, num_bottom_right, num_top_right, num_col, 2)
         cv2.line(img, num_top_right, num_top_left, num_col, 2)
+
+        if(self.num_img.shape[0] == 0):
+            print("Image size 0, skipping to avoid crash.")
+            return
 
         if self.prev_tag != tag_id:
             # set the masked image of the number to be published to /{bot_name}/num_img/compressed
