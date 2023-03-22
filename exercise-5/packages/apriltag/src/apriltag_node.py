@@ -59,6 +59,7 @@ class apriltag_node(DTROS):
         self.new_num = False
         self.prev_tag = 0
         self.dist_from_april = 999
+        self.pub_rate = 1
 
 
 
@@ -328,6 +329,9 @@ class apriltag_node(DTROS):
 
         # set the dist from april to the dist to the april tag
         self.dist_from_april = 45
+        if self.dist_from_april < 0.5:
+            self.pub_rate = 10
+        col_upper = 60
 
         # draw a box around the closest number
         cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
@@ -335,14 +339,17 @@ class apriltag_node(DTROS):
         cv2.line(img, num_bottom_right, num_top_right, num_col, 2)
         cv2.line(img, num_top_right, num_top_left, num_col, 2)
 
-        if self.prev_tag != tag_id:
-            # set the masked image of the number to be published to /{bot_name}/num_img/compressed
-            self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
-            # self.num_img = cv2.inRange(self.num_img, 0, 75)                                    # masking here gives more gradient b/w black and white pixels
-            self.num_img = cv2.resize(self.num_img, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
-            self.num_img = cv2.inRange(self.num_img, 0, 75)                                      # masking here gives a sharper image 
-            self.new_num = True
-            self.prev_tag = tag_id
+        try:
+            if self.prev_tag != tag_id and gray.size != 0:
+                # set the masked image of the number to be published to /{bot_name}/num_img/compressed
+                self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
+                # self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                    # masking here gives more gradient b/w black and white pixels
+                self.num_img = cv2.resize(self.num_img, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
+                self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                      # masking here gives a sharper image 
+                self.new_num = True
+                self.prev_tag = tag_id
+        except cv2.error:
+            pass
 
         # change the led based on the tag id
         self.change_led_to(closest_col)
@@ -363,7 +370,7 @@ if __name__ == '__main__':
     node = apriltag_node(node_name='april_tag_detector')
 
     # rate = rospy.Rate(10) # 10Hz
-    rate = rospy.Rate(1) # once every 2 s
+    rate = rospy.Rate(node.pub_rate) # once every 2 s
     while not rospy.is_shutdown() and node.run:
         node.pub_num()
         node.change_led_to(node.curr_col)
