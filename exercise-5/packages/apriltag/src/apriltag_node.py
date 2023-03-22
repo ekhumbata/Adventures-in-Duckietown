@@ -132,8 +132,7 @@ class apriltag_node(DTROS):
     def dist_pub(self):
         msg = Float32()
         msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
-
-        print("dist published:", self.dist_from_april, "m")
+        print(f"Apriltag Distance:{self.dist_from_april}m")
 
         self.dist_from_pub.publish(msg)
     
