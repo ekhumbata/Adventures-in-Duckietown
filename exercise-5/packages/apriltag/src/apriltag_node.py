@@ -309,13 +309,9 @@ class apriltag_node(DTROS):
                 closest = diff
                 closest_col = self.sign_to_col(tag_id)
 
-
-
-
-
-            # turn rotation matrix into quaternion
-            self.q = self._matrix_to_quaternion(tag.pose_R)
-            self.p = tag.pose_t.T[0]
+                # turn rotation matrix into quaternion
+                self.q = self._matrix_to_quaternion(tag.pose_R)
+                self.p = tag.pose_t.T[0]
 
             # print("p:", self.p, "q:", self.q)
         
@@ -343,7 +339,7 @@ class apriltag_node(DTROS):
         cv2.line(img, num_top_right, num_top_left, num_col, 2)
 
         try:
-            if self.prev_tag != tag_id and gray.size != 0:
+            if self.prev_tag != tag_id and gray.size != 0 and self.dist_from_april < 0.15:
                 # set the masked image of the number to be published to /{bot_name}/num_img/compressed
                 self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
                 # self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                    # masking here gives more gradient b/w black and white pixels
