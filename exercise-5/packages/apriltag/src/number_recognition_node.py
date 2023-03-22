@@ -61,6 +61,51 @@ class MLP(nn.Module):
 
         return y_pred, h_2
     
+class LeNet(nn.Module):
+	def __init__(self, numChannels, classes):
+		# call the parent constructor
+		super(LeNet, self).__init__()
+		# initialize first set of CONV => RELU => POOL layers
+		self.conv1 = nn.Conv2d(in_channels=numChannels, out_channels=20,
+			kernel_size=(5, 5))
+		self.relu1 = nn.ReLU()
+		self.maxpool1 =nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+		# initialize second set of CONV => RELU => POOL layers
+		self.conv2 = nn.Conv2d(in_channels=20, out_channels=50,
+			kernel_size=(5, 5))
+		self.relu2 = nn.ReLU()
+		self.maxpool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+		# initialize first (and only) set of FC => RELU layers
+		self.fc1 = nn.Linear(in_features=800, out_features=500)
+		self.relu3 = nn.ReLU()
+		# initialize our softmax classifier
+		self.fc2 = nn.Linear(in_features=500, out_features=classes)
+		self.logSoftmax = nn.LogSoftmax(dim=1)
+                
+	def forward(self, x):
+		# pass the input through our first set of CONV => RELU =>
+		# POOL layers
+		x = self.conv1(x)
+		x = self.relu1(x)
+		x = self.maxpool1(x)
+		# pass the output from the previous layer through the second
+		# set of CONV => RELU => POOL layers
+		x = self.conv2(x)
+		x = self.relu2(x)
+		x = self.maxpool2(x)
+		# flatten the output from the previous layer and pass it
+		# through our only set of FC => RELU layers
+		x = torch.flatten(x, 1)
+		x = self.fc1(x)
+		x = self.relu3(x)
+		# pass the output to our softmax classifier to get our output
+		# predictions
+		x = self.fc2(x)
+		# print(x)
+		output = self.logSoftmax(x)
+		# return the output predictions
+		return output
+
 # ros node
 class num_recog_node(DTROS):
 
@@ -71,7 +116,8 @@ class num_recog_node(DTROS):
         INPUT_DIM = 28 * 28
         OUTPUT_DIM = 10
 
-        self.model = MLP(INPUT_DIM, OUTPUT_DIM)
+        # self.model = MLP(INPUT_DIM, OUTPUT_DIM)
+        self.model = LeNet(1, OUTPUT_DIM)
         self.model.load_state_dict(torch.load('/data/tut1-model.pt'))
 
         self.run_fwd = False
@@ -105,7 +151,7 @@ class num_recog_node(DTROS):
             with torch.no_grad():
                 #x = x.to(device)
 
-                y_pred, _ = self.model(torch.tensor(np.array([self.num_img])))
+                y_pred = self.model(torch.tensor([[self.num_img]], dtype=torch.float32))
 
                 y_prob = F.softmax(y_pred, dim=-1)
 

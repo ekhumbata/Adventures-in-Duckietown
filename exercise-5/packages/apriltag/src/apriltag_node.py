@@ -13,7 +13,7 @@ from sensor_msgs.msg import CameraInfo
 from duckietown_msgs.srv import ChangePattern
 from duckietown_msgs.msg import LEDPattern
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 from std_msgs.msg import ColorRGBA
 
 
@@ -58,6 +58,7 @@ class apriltag_node(DTROS):
         self.q = 0
         self.new_num = False
         self.prev_tag = 0
+        self.dist_from_april = 999
 
 
 
@@ -73,6 +74,7 @@ class apriltag_node(DTROS):
         self.pub_led = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + "/led_emitter_node/led_pattern", LEDPattern, queue_size=1)
         self.pub_april = rospy.Publisher("/april_topic", String, queue_size=1)
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/num_img/compressed', CompressedImage, queue_size=1)
+        self.dist_from_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/dist_from_april', Float32, queue_size=1)
 
         # services 
         # led_topic = "/%s" % os.environ['VEHICLE_NAME'] + "/led_emitter_node/set_pattern"
@@ -177,6 +179,12 @@ class apriltag_node(DTROS):
 
         self.pub_april.publish(msg)
 
+    def dist_pub(self):
+        msg = Float32()
+        msg.data = self.dist_from_april
+
+        self.dist_from_pub.publish(msg)
+
 
     def change_led_to(self, new_col):
         # print("col:", new_col)
@@ -235,6 +243,7 @@ class apriltag_node(DTROS):
         if len(tags) == 0:
             self.change_led_to("WHITE")
             self.curr_col = "WHITE"
+            self.dist_from_april = 999
 
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
@@ -305,7 +314,7 @@ class apriltag_node(DTROS):
             self.q = self._matrix_to_quaternion(tag.pose_R)
             self.p = tag.pose_t.T[0]
 
-            # print("p:", p, "q:", q)
+            print("p:", self.p, "q:", self.q)
         
 
             # publish tf
@@ -316,6 +325,9 @@ class apriltag_node(DTROS):
                 "tag/{:s}".format(str(tag.tag_id)),
                 self.curr_msg.header.frame_id,
             )
+
+        # set the dist from april to the dist to the april tag
+        self.dist_from_april = 45
 
         # draw a box around the closest number
         cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
@@ -357,5 +369,6 @@ if __name__ == '__main__':
         node.change_led_to(node.curr_col)
         node.detect_tag()
         node.april_pub()
+        node.dist_pub()
         rate.sleep()
     
