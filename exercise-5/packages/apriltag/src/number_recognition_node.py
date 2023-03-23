@@ -120,7 +120,7 @@ class num_recog_node(DTROS):
         self.curr_tag = None
         self.verified = set() # set of all verified tags
         self.run = True
-        self.num_tags = 10 # num of tags to find
+        self.num_tags = 6 # num of tags to find
         self.verification_thresh = 3 # number of consistent predictions
 
 
@@ -172,24 +172,21 @@ class num_recog_node(DTROS):
             
             # if has already been seen
             if self.curr_tag in self.dict_tag:
-                print("WHERE")
                 # if it has already been predicted as pred add one to the counter
                 if pred in self.dict_tag[self.curr_tag]:
-                    print("HERE")
                     self.dict_tag[self.curr_tag][pred] += 1
                     # if it has been predicted as pred 3 times it can be considered verified
                     if self.dict_tag[self.curr_tag][pred] == self.verification_thresh:
                         self.verified.add(self.curr_tag)
                 # if this is a new prediction set a new pred counter to 1
                 else:
-                    print("THERE")
                     self.dict_tag[self.curr_tag][pred] = 1
             # if this tag has never been seen create a new pred counter dict
             else:
                 self.dict_tag[self.curr_tag] = {pred: 1}
             print(self.dict_tag, self.verified)
 
-        # shutdown all nodes, and print the sign nums once all have been verified
+        # print the sign nums once all have been verified
         if len(self.verified) == self.num_tags:
             for k, v in self.dict_tag.items():
                 print(f"tag {k} is a {max(v, key=v.get)}")
@@ -202,6 +199,7 @@ class num_recog_node(DTROS):
 
         self.num = -1
 
+    # send signal to all nodes to shutdown
     def pub_kill(self):
         msg = Bool()
         try:
@@ -211,6 +209,7 @@ class num_recog_node(DTROS):
 
         self.kill_pub.publish(msg)
         
+    # check if shutdown signal has been sent
     def check_shutdown(self):
         if not self.run:
             rospy.signal_shutdown("all tags detected")
