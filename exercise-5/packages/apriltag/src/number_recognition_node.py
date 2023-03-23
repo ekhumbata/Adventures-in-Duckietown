@@ -145,7 +145,7 @@ class num_recog_node(DTROS):
 
     def get_num(self):
         # only run fwd pass if and image has been detected and the current tag has not been verified
-        if self.run_fwd and not self.curr_tag in self.verified:
+        if self.run_fwd:
             print("RUNNING FWD PASS...")
             t0 = time.time()
             with torch.no_grad():
@@ -180,6 +180,12 @@ class num_recog_node(DTROS):
             else:
                 self.dict_tag[self.curr_tag] = {pred: 1}
             print(self.dict_tag, self.verified)
+
+        # shutdown all nodes, and print the sign nums once all have been verified
+        if len(self.verified) == 10:
+             for k, v in self.dict_tag:
+                  print(f"tag #{k} is a {max(v, key=v.get)}")
+             rospy.signal_shutdown("all tags detected")          # this might break everything lol
     # dont need this 
         # loop through each tag, and check if it can be verified
         # for k, v in self.dict_tag.items():
