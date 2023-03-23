@@ -46,6 +46,7 @@ class apriltag_node(DTROS):
         info_topic = f"""/{os.environ['VEHICLE_NAME']}/camera_node/camera_info"""
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
         self.subscriberCameraInfo = rospy.Subscriber(info_topic, CameraInfo, self.camera_info_callback,  queue_size=1)
+        self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
 
         # publishers
         # self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage, queue_size=10)
@@ -91,6 +92,8 @@ class apriltag_node(DTROS):
         except BaseException:
             pass
 
+    def cb_kill(self, msg):
+        self.run = msg.data
 
     def cb_img(self, msg):
         # data_arr = np.fromstring(msg.data, np.uint8)
@@ -253,6 +256,9 @@ class apriltag_node(DTROS):
         msg.data = np.array(cv2.imencode('.jpg', img)[1]).tostring()
         self.pub.publish(msg)
 
+    def check_shutdown(self):
+         if not self.run:
+              rospy.signal_shutdown("all tags detected")
 
 if __name__ == '__main__':
     # create the node
@@ -265,5 +271,6 @@ if __name__ == '__main__':
         node.detect_tag()
         node.dist_pub()
         node.pub_id()
+        node.check_shutdown()
         rate.sleep()
     

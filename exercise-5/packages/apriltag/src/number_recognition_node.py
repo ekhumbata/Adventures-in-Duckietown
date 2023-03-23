@@ -7,7 +7,7 @@ from duckietown.dtros import DTROS, NodeType
 import numpy as np
 
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import Int32, Int8
+from std_msgs.msg import Int32, Int8, Bool
 
 # imports for NN
 import torch
@@ -116,18 +116,23 @@ class num_recog_node(DTROS):
         self.run_fwd = False
         self.num_img = np.array([])
         self.num = -1
-        self.dict_tag = {}
+        self.dict_tag = {} # dict of all prev seen tags, and prev seen preds with counters
         self.curr_tag = None
-        self.verified = set()
+        self.verified = set() # set of all verified tags
+        self.run = True
+        self.num_tags = 10 # num of tags to find
+        self.verification_thresh = 3 # number of consistent predictions
 
 
         # subscribers
         img_topic = f"""/{os.environ['VEHICLE_NAME']}/num_img/compressed"""
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
         self.id_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/april_id", Int32, self.cb_tag, queue_size = 1)
+        self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
 
         # publishers
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/predicted_num', Int8, queue_size=1)
+        self.kill_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/shutdown', Bool, queue_size=1)
 
 
 
@@ -142,6 +147,9 @@ class num_recog_node(DTROS):
 
     def cb_tag(self, msg):
          self.curr_tag = msg.data
+    
+    def cb_kill(self, msg):
+         self.run = msg.data
 
     def get_num(self):
         # only run fwd pass if and image has been detected and the current tag has not been verified
@@ -170,7 +178,7 @@ class num_recog_node(DTROS):
                     print("HERE")
                     self.dict_tag[self.curr_tag][pred] += 1
                     # if it has been predicted as pred 3 times it can be considered verified
-                    if self.dict_tag[self.curr_tag][pred] == 3:
+                    if self.dict_tag[self.curr_tag][pred] == self.verification_thresh:
                         self.verified.add(self.curr_tag)
                 # if this is a new prediction set a new pred counter to 1
                 else:
@@ -182,18 +190,9 @@ class num_recog_node(DTROS):
             print(self.dict_tag, self.verified)
 
         # shutdown all nodes, and print the sign nums once all have been verified
-        if len(self.verified) == 10:
-             for k, v in self.dict_tag:
-                  print(f"tag #{k} is a {max(v, key=v.get)}")
-             rospy.signal_shutdown("all tags detected")          # this might break everything lol
-    # dont need this 
-        # loop through each tag, and check if it can be verified
-        # for k, v in self.dict_tag.items():
-        #      if k not in self.verified:
-        #         for i in v:
-        #             if max(v, key=v.values()) > 3:
-        #                 self.verified.add(k)
-
+        if len(self.verified) == self.num_tags:
+            for k, v in self.dict_tag.items():
+                print(f"tag {k} is a {max(v, key=v.get)}")
 
     # always publish -1 until a number has been detected then publish that number
     def pub_num(self):
@@ -202,6 +201,19 @@ class num_recog_node(DTROS):
         self.num_pub.publish(msg)
 
         self.num = -1
+
+    def pub_kill(self):
+        msg = Bool()
+        try:
+            msg.data = (len(self.verified) != self.num_tags)
+        except TypeError:
+             msg.data = True
+
+        self.kill_pub.publish(msg)
+        
+    def check_shutdown(self):
+        if not self.run:
+            rospy.signal_shutdown("all tags detected")
 
 
 if __name__ == '__main__':
@@ -213,5 +225,7 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         node.get_num()
         node.pub_num()
+        node.check_shutdown()
+        node.pub_kill()
         rate.sleep()
     

@@ -2,9 +2,10 @@
 
 import rospy
 
+import os
 from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CameraInfo, CompressedImage
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 from turbojpeg import TurboJPEG
 import cv2
 import numpy as np
@@ -22,6 +23,8 @@ class LaneFollowNode(DTROS):
         self.veh = rospy.get_param("~veh")
 
         # Publishers & Subscribers
+        self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
+
         self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed",
                                    CompressedImage,
                                    queue_size=1)
@@ -47,17 +50,22 @@ class LaneFollowNode(DTROS):
         self.velocity = 0.25
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
-        self.P = 0.08
+        # self.P = 0.08 # P for csc22910
+        self.P = 0.04   # P for csc22904
         self.D = -0.004
         self.I = 0.008
         self.last_error = 0
         self.last_time = rospy.get_time()
+        self.run = True
 
         # Wait a little while before sending motor commands
         rospy.Rate(0.20).sleep()
 
         # Shutdown hook
         rospy.on_shutdown(self.hook)
+
+    def cb_kill(self, msg):
+        self.run = msg.data
 
     def callback(self, msg):
         img = self.jpeg.decode(msg.data)
@@ -122,6 +130,10 @@ class LaneFollowNode(DTROS):
 
         self.vel_pub.publish(self.twist)
 
+    def check_shutdown(self):
+         if not self.run:
+              rospy.signal_shutdown("all tags detected")
+
     def hook(self):
         print("SHUTTING DOWN")
         self.twist.v = 0
@@ -136,4 +148,5 @@ if __name__ == "__main__":
     rate = rospy.Rate(10)  # 8hz
     while not rospy.is_shutdown():
         node.drive()
+        node.check_shutdown()
         rate.sleep()
