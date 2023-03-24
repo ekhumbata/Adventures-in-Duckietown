@@ -3,9 +3,10 @@
 import rospy
 
 import os
+import random
 from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CameraInfo, CompressedImage
-from std_msgs.msg import Float32, Bool
+from std_msgs.msg import Float32, Bool, Int32
 from turbojpeg import TurboJPEG
 import cv2
 import numpy as np
@@ -37,6 +38,12 @@ class LaneFollowNode(DTROS):
                                        Twist2DStamped,
                                        queue_size=1)
 
+        self.tagIdSub = rospy.Subscriber("/" + self.veh + "/april_id",
+                            Int32,
+                            self.tagIdCallback,
+                            queue_size=1,
+                            buff_size="20MB")
+
         self.jpeg = TurboJPEG()
 
         self.loginfo("Initialized")
@@ -58,14 +65,97 @@ class LaneFollowNode(DTROS):
         self.last_time = rospy.get_time()
         self.run = True
 
-        # Wait a little while before sending motor commands
+        # Wait a litcallbackg motor commands
         rospy.Rate(0.20).sleep()
 
         # Shutdown hook
         rospy.on_shutdown(self.hook)
 
+        # Force Turns
+        self.lastTagId = None
+        self.permittedActions = [] # 0: straight, 1: left, 2: right
+        self.forceTurnLeft = False
+        self.forceTurnRight = False
+        self.turnStartTime = rospy.Time.now().to_sec()
+        self.turnTime = 4 # rospy time is in seconds
+        self.randomPath = False
+
+
+
     def cb_kill(self, msg):
         self.run = msg.data
+
+
+    def tagIdCallback(self, msg):
+        try: # This func will probably run before the var is defined, so just return early to avoid errors
+            self.lastTagId
+        except NameError:
+            return
+
+
+        currTagId = msg.data
+
+
+
+        print("tag:", currTagId)
+        
+
+        # We've spotted a new tag!
+        if(currTagId != self.lastTagId):
+            if(currTagId == 62):
+                if(self.randomPath):  self.permittedActions = [0, 1]
+                else:                 self.permittedActions = [1]
+
+            elif(currTagId == 162):
+                if(self.randomPath):  self.permittedActions = [1, 2]
+                else:                 self.permittedActions = [2]
+
+            elif(currTagId == 133):
+                if(self.randomPath):  self.permittedActions = [0, 2]
+                else:                 self.permittedActions = [2]
+                
+            elif(currTagId == 169):
+                if(self.randomPath):  self.permittedActions = [1, 2]
+                else:                 self.permittedActions = [1]
+                
+            elif(currTagId == 153):
+                if(self.randomPath):  self.permittedActions = [0, 1]
+                else:                 self.permittedActions = [0]
+                
+            elif(currTagId == 58):
+                if(self.randomPath):  self.permittedActions = [0, 2]
+                else:                 self.permittedActions = [0]
+                
+            else:
+                self.permittedActions = [0] # If we are anywhere else, just lane follow
+
+
+
+            # After we've defined permitted actions - force once of them!
+            if(len(self.permittedActions) > 0):
+                action = random.choice(self.permittedActions)
+
+                if(action == 0): # Do nothing
+                    self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnLeft = False
+                    self.forceTurnRight = False
+
+                elif(action == 1): # Force Left
+                    self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnLeft = True
+                    self.forceTurnRight = False
+
+
+                elif(action == 2): # Force Right
+                    self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnLeft = False
+                    self.forceTurnRight = True
+
+
+        self.lastTagId = currTagId
+
+
+
 
     def callback(self, msg):
         img = self.jpeg.decode(msg.data)
@@ -127,6 +217,29 @@ class LaneFollowNode(DTROS):
             self.twist.omega = P + I + D
             if DEBUG:
                 print(self.proportional, P, D, self.twist.omega, self.twist.v)
+
+
+        ### Force Truns ###
+
+        if(DEBUG):
+            print("forceLeft?:", self.forceTurnLeft)
+            print("forceRight?:", self.forceTurnRight)
+            print("check:", rospy.Time.now().to_sec() - self.turnStartTime, ">", self.turnTime)
+
+        if(rospy.Time.now().to_sec() > self.turnStartTime + self.turnTime):
+            self.forceTurnLeft = False
+            self.forceTurnRight = False
+
+
+        if(self.forceTurnLeft):
+            print("Turning Left")
+            self.twist.omega += 0.5
+
+        elif(self.forceTurnRight):
+            print("Turning Right")
+            self.twist.omega -= 0.5        
+        ### Force Turns ###
+
 
         self.vel_pub.publish(self.twist)
 

@@ -141,7 +141,7 @@ class num_recog_node(DTROS):
         # data_arr = np.fromstring(msg.data, np.uint8)
         data_arr = np.frombuffer(msg.data, np.uint8)
         img = cv2.imdecode(data_arr, cv2.IMREAD_GRAYSCALE)
-        print("HERE")
+        # print("HERE")
         self.run_fwd = True
         self.num_img = img
 
