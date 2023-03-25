@@ -54,7 +54,7 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 240
-        self.velocity = 0.25
+        self.velocity = 0.35 # 0.25 (cameron's bot is weak)
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -73,11 +73,13 @@ class LaneFollowNode(DTROS):
 
         # Force Turns
         self.lastTagId = None
-        self.permittedActions = [] # 0: straight, 1: left, 2: right
+        self.permittedActions = [-1] # -1: lane follow, 0: straight, 1: left, 2: right
+        self.forceTurnStraight = False
         self.forceTurnLeft = False
         self.forceTurnRight = False
         self.turnStartTime = rospy.Time.now().to_sec()
-        self.turnTime = 4 # rospy time is in seconds
+        self.turnTime = 3 # rospy time is in seconds
+        self.turnStartDelay = 2 # how long to continue driving normally before turning
         self.randomPath = False
 
 
@@ -127,7 +129,7 @@ class LaneFollowNode(DTROS):
                 else:                 self.permittedActions = [0]
                 
             else:
-                self.permittedActions = [0] # If we are anywhere else, just lane follow
+                self.permittedActions = [-1] # If we are anywhere else, just lane follow
 
 
 
@@ -135,19 +137,28 @@ class LaneFollowNode(DTROS):
             if(len(self.permittedActions) > 0):
                 action = random.choice(self.permittedActions)
 
-                if(action == 0): # Do nothing
+                if(action == -1): # Just Lane Follow
                     self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnStraight = False
+                    self.forceTurnLeft = False
+                    self.forceTurnRight = False
+
+                if(action == 0): # Force Straight
+                    self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnStraight = True
                     self.forceTurnLeft = False
                     self.forceTurnRight = False
 
                 elif(action == 1): # Force Left
                     self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnStraight = False
                     self.forceTurnLeft = True
                     self.forceTurnRight = False
 
 
                 elif(action == 2): # Force Right
                     self.turnStartTime = rospy.Time.now().to_sec()
+                    self.forceTurnStraight = False
                     self.forceTurnLeft = False
                     self.forceTurnRight = True
 
@@ -220,26 +231,36 @@ class LaneFollowNode(DTROS):
 
 
         ### Force Truns ###
-
         if(DEBUG):
             print("forceLeft?:", self.forceTurnLeft)
             print("forceRight?:", self.forceTurnRight)
             print("check:", rospy.Time.now().to_sec() - self.turnStartTime, ">", self.turnTime)
 
-        if(rospy.Time.now().to_sec() > self.turnStartTime + self.turnTime):
+        if(rospy.Time.now().to_sec() - self.turnStartTime > self.turnTime):
+            self.forceTurnStraight = False
             self.forceTurnLeft = False
             self.forceTurnRight = False
 
-
         if(self.forceTurnLeft):
-            print("Turning Left")
-            self.twist.omega += 0.5
+            # print("ready to turn left")
+            
 
-        elif(self.forceTurnRight):
-            print("Turning Right")
-            self.twist.omega -= 0.5        
+        if(self.forceTurnRight):
+            # print("ready to turn right")
+
+
+        if(self.forceTurnLeft and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
+            # print("Turning Left")
+            self.twist.omega = 3
+
+        elif(self.forceTurnRight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
+            # print("Turning Right")
+            self.twist.omega = -5
+
+        elif(self.forceTurnStraight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
+            # print("Straight")
+            self.twist.omega = 0
         ### Force Turns ###
-
 
         self.vel_pub.publish(self.twist)
 
