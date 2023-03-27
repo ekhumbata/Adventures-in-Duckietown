@@ -51,7 +51,7 @@ class LaneFollowNode(DTROS):
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
-        self.P = 0.04   # P for csc22904
+        self.P = 0.045   # P for csc22904
         self.D = -0.004
         self.I = 0.008
         self.last_error = 0

@@ -141,7 +141,6 @@ class num_recog_node(DTROS):
         # data_arr = np.fromstring(msg.data, np.uint8)
         data_arr = np.frombuffer(msg.data, np.uint8)
         img = cv2.imdecode(data_arr, cv2.IMREAD_GRAYSCALE)
-        print("HERE")
         self.run_fwd = True
         self.num_img = img
 
@@ -154,7 +153,6 @@ class num_recog_node(DTROS):
     def get_num(self):
         # only run fwd pass if and image has been detected and the current tag has not been verified
         if self.run_fwd:
-            print("RUNNING FWD PASS...")
             t0 = time.time()
             with torch.no_grad():
                 #x = x.to(device)
