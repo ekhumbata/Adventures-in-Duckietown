@@ -37,7 +37,11 @@ class apriltag_node(DTROS):
         self.new_num = False
         self.prev_tag = 0
         self.dist_from_april = 999
-        self.pub_rate = 1
+        self.pub_rate = 30
+        self.default_pub_rate = 10
+        self.boosted_pub_rate = 30
+        self.boosted_pub_rate_cycles = 5 # how many iterations to run the boosted pub rate (aka the number of times we drop clock cycles on the boosted rate to accomidate missed identifications)
+        self.boosted_pub_rate_count = 999
 
 
 
@@ -133,7 +137,7 @@ class apriltag_node(DTROS):
     def dist_pub(self):
         msg = Float32()
         msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
-        print(f"Apriltag Distance:{self.dist_from_april}m")
+        # print(f"Apriltag Distance: {self.dist_from_april*2}m")
 
         self.dist_from_pub.publish(msg)
     
@@ -154,7 +158,17 @@ class apriltag_node(DTROS):
 
         tags = self.detector.detect(gray, True, self.camera_parameters, self.tag_size)
 
-        print("[INFO] {} total AprilTags detected".format(len(tags)))
+        # print("[INFO] {} total AprilTags detected".format(len(tags)))
+
+
+        # Varibale refresh rate
+        if(self.boosted_pub_rate_count < self.boosted_pub_rate_cycles):
+            print("boosted cycle running -", self.dist_from_april)
+            self.pub_rate = self.boosted_pub_rate
+            self.boosted_pub_rate_count += 1
+        else:
+            # print("default cycle running")
+            self.pub_rate = self.default_pub_rate
 
 
         if len(tags) == 0:
@@ -202,7 +216,7 @@ class apriltag_node(DTROS):
             txt_col = (25, 25, 200)
             tag_id = tag.tag_id
             cv2.putText(img, str(tag_id), (cX - 9, cY + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_col, 2)
-            print("[INFO] tag id: {}".format(tag_id))
+            # print("[INFO] tag id: {}".format(tag_id))
 
             # if multiple seen, set col to the closest tag
             if diff > closest:
@@ -225,8 +239,11 @@ class apriltag_node(DTROS):
         
         # set the dist from april to the dist to the april tag
         self.dist_from_april = self.p[2] # just the camera x dist
+
         if self.dist_from_april < 0.5:
-            self.pub_rate = 0.1
+            # print("starting boosted cycles")
+            self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
+
         col_upper = 60
         
 
@@ -264,13 +281,15 @@ if __name__ == '__main__':
     # create the node
     node = apriltag_node(node_name='april_tag_detector')
 
-    # rate = rospy.Rate(10) # 10Hz
-    rate = rospy.Rate(node.pub_rate) # once every 2 s
+    # rate = rospy.Rate(10) # once every 10s
+    # rate = rospy.Rate(node.pub_rate)
     while not rospy.is_shutdown() and node.run:
         node.pub_num()
         node.detect_tag()
         node.dist_pub()
         node.pub_id()
         node.check_shutdown()
+
+        rate = rospy.Rate(node.pub_rate)   # placed here to enable variable refresh
         rate.sleep()
     

@@ -163,7 +163,13 @@ class num_recog_node(DTROS):
 
                 
             pred = int(torch.argmax(y_prob, 1)[0])
-            print(f"predicted digit: {pred}, with {y_prob[0][pred] * 100}% certianty, in {(time.time() - t0) * 100} secs")
+            print(f"""
+            =======================================================
+            | Predicted Digit: {pred}                                  |
+            | Prediction Certainty: {y_prob[0][pred] * 100}%                        |
+            | Prediction Time: {(time.time() - t0) * 100}s               |
+            =======================================================
+            """)
             self.num = int(pred)
             self.run_fwd = False
 
@@ -182,12 +188,14 @@ class num_recog_node(DTROS):
             # if this tag has never been seen create a new pred counter dict
             else:
                 self.dict_tag[self.curr_tag] = {pred: 1}
-            print(self.dict_tag, self.verified)
+            print(self.dict_tag, self.verified, "\n")
 
         # print the sign nums once all have been verified
         if len(self.verified) == self.num_tags:
+            print("=========================")
             for k, v in self.dict_tag.items():
-                print(f"tag {k} is a {max(v, key=v.get)}")
+                print(f"| Tag {k} is a {max(v, key=v.get)}")
+            print("=========================")
 
     # always publish -1 until a number has been detected then publish that number
     def pub_num(self):
