@@ -74,6 +74,7 @@ class LeNet(nn.Module):
 		# initialize our softmax classifier
 		self.fc2 = nn.Linear(in_features=500, out_features=classes)
 		self.logSoftmax = nn.LogSoftmax(dim=1)
+		self.drop = nn.Dropout(p=0.25)
                 
 	def forward(self, x):
 		# pass the input through our first set of CONV => RELU =>
@@ -81,23 +82,28 @@ class LeNet(nn.Module):
 		x = self.conv1(x)
 		x = self.relu1(x)
 		x = self.maxpool1(x)
+		# x = self.drop(x)
 		# pass the output from the previous layer through the second
 		# set of CONV => RELU => POOL layers
 		x = self.conv2(x)
 		x = self.relu2(x)
 		x = self.maxpool2(x)
+		# x = self.drop(x)
 		# flatten the output from the previous layer and pass it
 		# through our only set of FC => RELU layers
 		x = torch.flatten(x, 1)
 		x = self.fc1(x)
 		x = self.relu3(x)
+		# x = self.drop(x)
 		# pass the output to our softmax classifier to get our output
 		# predictions
 		x = self.fc2(x)
+		# x = self.drop(x)
 		# print(x)
 		output = self.logSoftmax(x)
 		# return the output predictions
 		return output
+    
 
 # ros node
 class num_recog_node(DTROS):
@@ -111,7 +117,9 @@ class num_recog_node(DTROS):
 
         # self.model = MLP(INPUT_DIM, OUTPUT_DIM)
         self.model = LeNet(1, OUTPUT_DIM)
-        self.model.load_state_dict(torch.load('/data/tut1-model.pt'))
+
+        weight_file = '/data/best_one_yet.pt'
+        self.model.load_state_dict(torch.load(weight_file))
 
         self.run_fwd = False
         self.num_img = np.array([])

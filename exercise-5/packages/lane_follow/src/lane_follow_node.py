@@ -268,7 +268,7 @@ class LaneFollowNode(DTROS):
         elif(self.forceTurnStraight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
             print("Straight")
             self.twist.omega = 0
-
+        
 
 
         if(rospy.Time.now().to_sec() - self.turnStartTime > self.turnTime):

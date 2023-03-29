@@ -148,7 +148,7 @@ class apriltag_node(DTROS):
 
 
     def detect_tag(self):
-        if(not self.safeToRunProgram):
+        if(not self.safeToRunProgram) or not self.col_img.any():
             return
 
 
