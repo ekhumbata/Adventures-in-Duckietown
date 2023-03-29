@@ -17,7 +17,7 @@ We start off with a matrix looking like the following after first pass:
 
 $$\begin{equation}
 \begin{bmatrix}
-\textcolor{yellow}2 & \textcolor{yellow}3
+\textcolor{brown}2 & \textcolor{brown}3
 \end{bmatrix}
 \cdot
 \begin{bmatrix}
@@ -41,8 +41,8 @@ $$\begin{equation}
 $$
 
 Where:
-- $\textcolor{yellow}{i_1} = 2$
-- $\textcolor{yellow}{i_2} = 3$
+- $\textcolor{brown}{i_1} = 2$
+- $\textcolor{brown}{i_2} = 3$
 - $\textcolor{lightblue}{w_1} = 0.12$
 - $\textcolor{lightblue}{w_2} = 0.23$
 - $\textcolor{orange}{w_3} = 0.13$
@@ -112,8 +112,8 @@ $$\begin{equation}
 \textcolor{pink}{0.05}
 \text{(-0.74)}
 \begin{bmatrix}
-\textcolor{yellow}{2}\\
-\textcolor{yellow}{3}
+\textcolor{brown}{2}\\
+\textcolor{brown}{3}
 \end{bmatrix}
 \begin{bmatrix}
 \textcolor{grey}{0.17} & \textcolor{grey}{0.17}
@@ -139,7 +139,7 @@ $$
 Now with the new weights calculated, we can do a forward pass to make a new prediction.
 $$\begin{equation}
 \begin{bmatrix}
-\textcolor{yellow}2 & \textcolor{yellow}3
+\textcolor{brown}2 & \textcolor{brown}3
 \end{bmatrix}
 \cdot
 \begin{bmatrix}
@@ -219,14 +219,18 @@ Adding a dropout layer reduces the correlation between nodes within a layer, and
 ---
 ### Implement It!
 
-Below you can see the 
+<br>
+
+Below you can see the duckiebots detecting numbers as they make their way around the track.
+
+<br>
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/l94tln9xoq8" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.1: Duckiebot detecting a number</b></figcaption>
 
 <br>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/prJx2h8Z6L4" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/oN4bJrjkix4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 <figcaption align = "center"><b>Vid.2: Terminal view of number detection</b></figcaption>
 
 <br>

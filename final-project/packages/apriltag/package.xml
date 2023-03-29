@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package>
+  <name>apriltag</name>
+  <version>1.0.0</version>
+  <description>The apriltag meta package</description>
+
+  <license>GPLv3</license>
+<maintainer email="mwalter@ttic.edu">Matthew R. Walter</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
