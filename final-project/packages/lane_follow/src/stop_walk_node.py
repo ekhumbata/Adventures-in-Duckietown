@@ -86,6 +86,8 @@ class apriltag_node(DTROS):
                     self.run_pid = cv2.contourArea(max(contours, key = cv2.contourArea)) < 500
                 except ValueError:
                     self.run_pid = True
+        else:
+            self.run_pid = True
                 
 
         self.pub_img = duck_mask

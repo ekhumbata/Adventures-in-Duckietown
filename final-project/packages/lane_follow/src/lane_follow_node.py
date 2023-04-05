@@ -26,7 +26,7 @@ class LaneFollowNode(DTROS):
     def __init__(self, node_name):
         super(LaneFollowNode, self).__init__(node_name=node_name, node_type=NodeType.GENERIC)
         self.node_name = node_name
-        self.veh = rospy.get_param("~veh")
+        self.veh = os.environ["VEHICLE_NAME"]
 
         # Publishers & Subscribers
         self.stop_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/run_lane_follow", Bool, self.cb_run, queue_size = 1)
@@ -63,12 +63,12 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 240
-        self.velocity = 0.25 # 0.25 (cameron's bot is weak)
+        self.velocity = 0.25
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
-        self.P = 0.04   # P for csc22904
-        # self.P = 0.04   # P for csc22930
+        # self.P = 0.04   # P for csc22904
+        self.P = 0.04   # P for csc22930
         self.D = -0.004
         self.I = 0.008
         self.last_error = 0
@@ -214,7 +214,7 @@ class LaneFollowNode(DTROS):
 
 if __name__ == "__main__":
     node = LaneFollowNode("lanefollow_node")
-    rate = rospy.Rate(10)  # 8hz
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         node.drive()
         node.check_shutdown()
