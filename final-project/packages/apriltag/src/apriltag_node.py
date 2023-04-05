@@ -154,7 +154,10 @@ class apriltag_node(DTROS):
 
         # convert the img to greyscale
         img =  self.col_img
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        try:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        except cv2.error:
+            return
 
         tags = self.detector.detect(gray, True, self.camera_parameters, self.tag_size)
 

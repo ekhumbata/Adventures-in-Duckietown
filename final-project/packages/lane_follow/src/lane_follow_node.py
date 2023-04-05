@@ -63,7 +63,7 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 240
-        self.velocity = 0.25
+        self.velocity = 0.275
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -161,6 +161,7 @@ class LaneFollowNode(DTROS):
     def drive(self):
         dtime = time.time() - self.stop_t
         if self.run_pid:
+            print("RUNNING PID")
             if self.proportional is None:
                 self.twist.omega = 0
                 self.last_error = 0
@@ -183,21 +184,25 @@ class LaneFollowNode(DTROS):
                 if DEBUG:
                     print(self.proportional, P, D, self.twist.omega, self.twist.v)
         # PID has been shut off, stop time has elapsed begin turn
-        elif dtime > 2 and dtime < 5:
-            print(f"curr tag: {self.lastTagId}, time since stopping: {dtime}")
+        elif dtime > 2 and dtime < 6:
+            print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
             # drive straight 
             self.twist.omega = 0
             self.twist.v = self.velocity
             # once we have driven straight for 3 secs begin turn in correct dir
-            if self.lastTagId == ID_LIST["left"] and dtime > 3:
+            if self.lastTagId == ID_LIST["left"] and dtime > 4:
+                print("################################################## LEFT")
                 self.twist.omega = np.pi / 2
-            elif self.lastTagId == ID_LIST["right"] and dtime > 3:
+            elif self.lastTagId == ID_LIST["right"] and dtime > 4:
+                print("################################################## RIGHT")
                 self.twist.omega = -np.pi / 2
             # omega is already zero, no change needed
-            elif self.lastTagId == ID_LIST["straight"] and dtime > 3:
+            elif self.lastTagId == ID_LIST["straight"] and dtime > 4:
+                print("################################################## STRAIGHT")
                 pass
             # if not at any intersection sign resume PID
-            else:
+            elif dtime > 4:
+                print("****************************************************")
                 self.stop_t = 0
                 self.run_pid = True
 
