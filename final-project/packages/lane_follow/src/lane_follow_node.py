@@ -26,7 +26,7 @@ class LaneFollowNode(DTROS):
     def __init__(self, node_name):
         super(LaneFollowNode, self).__init__(node_name=node_name, node_type=NodeType.GENERIC)
         self.node_name = node_name
-        self.veh = rospy.get_param("~veh")
+        self.veh = os.environ["VEHICLE_NAME"]
 
         # Publishers & Subscribers
         self.stop_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/run_lane_follow", Bool, self.cb_run, queue_size = 1)
@@ -182,18 +182,30 @@ class LaneFollowNode(DTROS):
                 self.twist.omega = P + I + D
                 if DEBUG:
                     print(self.proportional, P, D, self.twist.omega, self.twist.v)
-        
+        # PID has been shut off, stop time has elapsed begin turn
         elif dtime > 2 and dtime < 5:
+            # drive straight 
             self.twist.omega = 0
             self.twist.v = self.velocity
+            # once we have driven straight for 3 secs begin turn in correct dir
             if self.lastTagId == ID_LIST["left"] and dtime > 3:
                 self.twist.omega = np.pi / 2
             elif self.lastTagId == ID_LIST["right"] and dtime > 3:
                 self.twist.omega = -np.pi / 2
+            # omega is already zero, no change needed
+            elif self.lastTagId == ID_LIST["straight"] and dtime > 3:
+                pass
+            # if not at any intersection sign resume PID
+            else:
+                self.stop_t = 0
+                self.run_pid = True
+
+        # PID has been shut off, wait for stop time to elapse
         elif dtime < 2:
             self.twist.omega = 0
             self.twist.v = 0
             self.last_error = 0
+        # resume PID
         else:
             self.run_pid = True
 
