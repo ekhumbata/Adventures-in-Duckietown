@@ -14,7 +14,7 @@ from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
 import time
 
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
-DEBUG = False
+DEBUG = True
 ENGLISH = False
 
 ID_LIST = {"right": 48,
@@ -63,7 +63,7 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 240
-        self.velocity = 0.275
+        self.velocity = 0.26
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -96,6 +96,9 @@ class LaneFollowNode(DTROS):
         self.randomPath = False
         self.run_pid = True
 
+        self.lcrop = 0
+        self.rcrop = -1
+
 
         self.loginfo("Initialized")
 
@@ -122,7 +125,9 @@ class LaneFollowNode(DTROS):
 
     def callback(self, msg):
         img = self.jpeg.decode(msg.data)
-        crop = img[250:-1, :, :]
+        print(img.shape)
+        crop = img[250:-1, int(self.lcrop):int(self.rcrop), :]
+        print(crop.shape)
         crop_width = crop.shape[1]
         hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, ROAD_MASK[0], ROAD_MASK[1])
@@ -159,7 +164,40 @@ class LaneFollowNode(DTROS):
             self.pub.publish(rect_img_msg)
 
     def drive(self):
+        turn_time = 5
         dtime = time.time() - self.stop_t
+        # PID has been shut off, stop time has elapsed begin turn    
+        if dtime > 2 and dtime < turn_time:
+            print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
+            # drive straight 
+            self.twist.omega = 0
+            self.twist.v = self.velocity
+            self.run_pid = False
+            # once we have driven straight for 3 secs begin turn in correct dir
+            if self.lastTagId == ID_LIST["left"] and dtime > 3:
+                print("################################################## LEFT")
+                self.lcrop = 0
+                self.rcrop = 640 / 2
+                self.run_pid = True
+            elif self.lastTagId == ID_LIST["right"] and dtime > 3:
+                print("################################################## RIGHT")
+                self.lcrop = 640 / 2
+                self.rcrop = -1
+                self.run_pid = True
+            # omega is already zero, no change needed
+            elif self.lastTagId == ID_LIST["straight"] and dtime > 4:
+                print("################################################## STRAIGHT")
+                self.lcrop = 0
+                self.rcrop = 640 / 2
+                self.run_pid = True
+            # if not at any intersection sign resume PID
+            elif dtime > 4:
+                print("****************************************************")
+                self.stop_t = 0
+                self.run_pid = True
+                self.lcrop = 0
+                self.rcrop = -1
+
         if self.run_pid:
             print("RUNNING PID")
             if self.proportional is None:
@@ -183,39 +221,78 @@ class LaneFollowNode(DTROS):
                 self.twist.omega = P + I + D
                 if DEBUG:
                     print(self.proportional, P, D, self.twist.omega, self.twist.v)
-        # PID has been shut off, stop time has elapsed begin turn
-        elif dtime > 2 and dtime < 6:
-            print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
-            # drive straight 
-            self.twist.omega = 0
-            self.twist.v = self.velocity
-            # once we have driven straight for 3 secs begin turn in correct dir
-            if self.lastTagId == ID_LIST["left"] and dtime > 4:
-                print("################################################## LEFT")
-                self.twist.omega = np.pi / 2
-            elif self.lastTagId == ID_LIST["right"] and dtime > 4:
-                print("################################################## RIGHT")
-                self.twist.omega = -np.pi / 2
-            # omega is already zero, no change needed
-            elif self.lastTagId == ID_LIST["straight"] and dtime > 4:
-                print("################################################## STRAIGHT")
-                pass
-            # if not at any intersection sign resume PID
-            elif dtime > 4:
-                print("****************************************************")
-                self.stop_t = 0
-                self.run_pid = True
-
         # PID has been shut off, wait for stop time to elapse
         elif dtime < 2:
             self.twist.omega = 0
             self.twist.v = 0
             self.last_error = 0
         # resume PID
-        else:
+        if dtime > turn_time:
+            print("WHACK PRINT RESUME PID")
             self.run_pid = True
+            self.lcrop = 0
+            self.rcrop = -1
+
 
         self.vel_pub.publish(self.twist)
+
+        # dtime = time.time() - self.stop_t
+        # if self.run_pid:
+        #     print("RUNNING PID")
+        #     if self.proportional is None:
+        #         self.twist.omega = 0
+        #         self.last_error = 0
+        #     else:
+        #         # P Term
+        #         P = -self.proportional * self.P
+
+        #         # D Term
+        #         d_time = (rospy.get_time() - self.last_time)
+        #         d_error = (self.proportional - self.last_error) / d_time
+        #         self.last_error = self.proportional
+        #         self.last_time = rospy.get_time()
+        #         D = d_error * self.D
+
+        #         # I Term
+        #         I = -self.proportional * self.I * d_time
+
+        #         self.twist.v = self.velocity
+        #         self.twist.omega = P + I + D
+        #         if DEBUG:
+        #             print(self.proportional, P, D, self.twist.omega, self.twist.v)
+        # # PID has been shut off, stop time has elapsed begin turn
+        # elif dtime > 2 and dtime < 6:
+        #     print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
+        #     # drive straight 
+        #     self.twist.omega = 0
+        #     self.twist.v = self.velocity
+        #     # once we have driven straight for 3 secs begin turn in correct dir
+        #     if self.lastTagId == ID_LIST["left"] and dtime > 3:
+        #         print("################################################## LEFT")
+        #         self.twist.omega = np.pi / 2
+        #     elif self.lastTagId == ID_LIST["right"] and dtime > 3:
+        #         print("################################################## RIGHT")
+        #         self.twist.omega = -np.pi / 2
+        #     # omega is already zero, no change needed
+        #     elif self.lastTagId == ID_LIST["straight"] and dtime > 4:
+        #         print("################################################## STRAIGHT")
+        #         pass
+        #     # if not at any intersection sign resume PID
+        #     elif dtime > 4:
+        #         print("****************************************************")
+        #         self.stop_t = 0
+        #         self.run_pid = True
+
+        # # PID has been shut off, wait for stop time to elapse
+        # elif dtime < 2:
+        #     self.twist.omega = 0
+        #     self.twist.v = 0
+        #     self.last_error = 0
+        # # resume PID
+        # else:
+        #     self.run_pid = True
+
+        # self.vel_pub.publish(self.twist)
 
     def check_shutdown(self):
          if not self.run:
