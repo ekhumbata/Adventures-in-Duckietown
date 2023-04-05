@@ -1,10 +1,13 @@
 <launch>
-    <arg name="veh" doc="Name of vehicle. ex: megaman"/>
-    <arg name="pkg_name" value="lane_follow"/>
-    <arg name="node_name" default="lane_follow_node"/>
-    <group ns="$(arg veh)">
-        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true">
-            <param name="veh" value="$(arg veh)" />
-        </node>
-    </group>
+
+  <group ns="$(arg veh)">  
+
+    <node pkg="lane_follow" type="stop_walk_node.py" name="stop_walk_node" output="screen"/>
+    <node pkg="lane_follow" type="lane_follow_node.py" name="lane_follow_node" output="screen"/>
+    <!-- <node pkg="apriltag" type="number_recognition_node.py" name="num_node" output="screen"/> -->
+    <!-- <node pkg="apriltag" type="lane_follow.py" name="lane_follow_node" output="screen"/> -->
+    <!-- <node pkg="my_package" type="my_subscriber_node.py" name="my_subscriber_node"  output="screen"/> -->
+
+  </group>
+
 </launch>

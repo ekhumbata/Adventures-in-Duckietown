@@ -11,10 +11,15 @@ from turbojpeg import TurboJPEG
 import cv2
 import numpy as np
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
+import time
 
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
 DEBUG = False
 ENGLISH = False
+
+ID_LIST = {"right": 48,
+           "left": 50,
+           "straight": 56}
 
 class LaneFollowNode(DTROS):
 
@@ -24,6 +29,7 @@ class LaneFollowNode(DTROS):
         self.veh = rospy.get_param("~veh")
 
         # Publishers & Subscribers
+        self.stop_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/run_lane_follow", Bool, self.cb_run, queue_size = 1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
 
         self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed",
@@ -57,7 +63,7 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 240
-        self.velocity = 0.35 # 0.25 (cameron's bot is weak)
+        self.velocity = 0.25 # 0.25 (cameron's bot is weak)
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -68,6 +74,8 @@ class LaneFollowNode(DTROS):
         self.last_error = 0
         self.last_time = rospy.get_time()
         self.run = True
+
+        self.stop_t = 0
 
         # Wait a litcallbackg motor commands
         rospy.Rate(0.20).sleep()
@@ -86,6 +94,7 @@ class LaneFollowNode(DTROS):
         self.turnStartDelay = 1.25 # how long to continue driving normally before turning
         self.turnTime = 2.25 # rospy time is in seconds (must be greater than turnStartDelay)
         self.randomPath = False
+        self.run_pid = True
 
 
         self.loginfo("Initialized")
@@ -95,6 +104,10 @@ class LaneFollowNode(DTROS):
     def cb_kill(self, msg):
         self.run = msg.data
 
+    def cb_run(self, msg):
+        if not msg.data:
+            self.run_pid = msg.data
+            self.stop_t = time.time()
 
     def tagDistCallback(self, msg):
         self.tagDist = msg.data
@@ -104,77 +117,7 @@ class LaneFollowNode(DTROS):
             self.lastTagId
         except AttributeError:
             return
-
-
-        currTagId = msg.data
-        # print("tag:", currTagId)
-        
-
-        # We've spotted a new tag (and are close enough to start the turn timer)!
-        if(self.tagDist < 0.25): # we are close enough - once we fall under xcm then we can start the turn timer
-            # if(currTagId != self.lastTagId):
-            if(currTagId == 153):
-                if(self.randomPath):  self.permittedActions = [0, 1]
-                else:                 self.permittedActions = [1]
-                
-            elif(currTagId == 58):
-                if(self.randomPath):  self.permittedActions = [0, 2]
-                else:                 self.permittedActions = [2]
-
-            elif(currTagId == 62):
-                if(self.randomPath):  self.permittedActions = [0, 1]
-                else:                 self.permittedActions = [0]
-
-            elif(currTagId == 169):
-                if(self.randomPath):  self.permittedActions = [1, 2]
-                else:                 self.permittedActions = [2]
-
-            elif(currTagId == 162):
-                if(self.randomPath):  self.permittedActions = [1, 2]
-                else:                 self.permittedActions = [1]
-
-            elif(currTagId == 133):
-                if(self.randomPath):  self.permittedActions = [0, 2]
-                else:                 self.permittedActions = [0]
-                
-            else:
-                self.permittedActions = [-1] # If we are anywhere else, just lane follow
-
-
-
-            # After we've defined permitted actions - force once of them!
-            if(len(self.permittedActions) > 0):
-                action = random.choice(self.permittedActions)
-
-                if(action == -1): # Just Lane Follow
-                    self.turnStartTime = rospy.Time.now().to_sec()
-                    self.forceTurnStraight = False
-                    self.forceTurnLeft = False
-                    self.forceTurnRight = False
-
-                if(action == 0): # Force Straight
-                    self.turnStartTime = rospy.Time.now().to_sec()
-                    self.forceTurnStraight = True
-                    self.forceTurnLeft = False
-                    self.forceTurnRight = False
-
-                elif(action == 1): # Force Left
-                    self.turnStartTime = rospy.Time.now().to_sec()
-                    self.forceTurnStraight = False
-                    self.forceTurnLeft = True
-                    self.forceTurnRight = False
-
-
-                elif(action == 2): # Force Right
-                    self.turnStartTime = rospy.Time.now().to_sec()
-                    self.forceTurnStraight = False
-                    self.forceTurnLeft = False
-                    self.forceTurnRight = True
-
-
-        self.lastTagId = currTagId
-
-
+        self.lastTagId = msg.data
 
 
     def callback(self, msg):
@@ -216,66 +159,43 @@ class LaneFollowNode(DTROS):
             self.pub.publish(rect_img_msg)
 
     def drive(self):
-        if self.proportional is None:
+        dtime = time.time() - self.stop_t
+        if self.run_pid:
+            if self.proportional is None:
+                self.twist.omega = 0
+                self.last_error = 0
+            else:
+                # P Term
+                P = -self.proportional * self.P
+
+                # D Term
+                d_time = (rospy.get_time() - self.last_time)
+                d_error = (self.proportional - self.last_error) / d_time
+                self.last_error = self.proportional
+                self.last_time = rospy.get_time()
+                D = d_error * self.D
+
+                # I Term
+                I = -self.proportional * self.I * d_time
+
+                self.twist.v = self.velocity
+                self.twist.omega = P + I + D
+                if DEBUG:
+                    print(self.proportional, P, D, self.twist.omega, self.twist.v)
+        
+        elif dtime > 2 and dtime < 5:
             self.twist.omega = 0
+            self.twist.v = self.velocity
+            if self.lastTagId == ID_LIST["left"] and dtime > 3:
+                self.twist.omega = np.pi / 2
+            elif self.lastTagId == ID_LIST["right"] and dtime > 3:
+                self.twist.omega = -np.pi / 2
+        elif dtime < 2:
+            self.twist.omega = 0
+            self.twist.v = 0
             self.last_error = 0
         else:
-            # P Term
-            P = -self.proportional * self.P
-
-            # D Term
-            d_time = (rospy.get_time() - self.last_time)
-            d_error = (self.proportional - self.last_error) / d_time
-            self.last_error = self.proportional
-            self.last_time = rospy.get_time()
-            D = d_error * self.D
-
-            # I Term
-            I = -self.proportional * self.I * d_time
-
-            self.twist.v = self.velocity
-            self.twist.omega = P + I + D
-            if DEBUG:
-                print(self.proportional, P, D, self.twist.omega, self.twist.v)
-
-
-        ### Force Truns ###
-        if(DEBUG):
-            print("forceLeft?:", self.forceTurnLeft)
-            print("forceRight?:", self.forceTurnRight)
-            print("forceStraight?:", self.forceTurnStraight)
-            print("check:", rospy.Time.now().to_sec() - self.turnStartTime, ">", self.turnTime)
-
-        if(self.forceTurnLeft):
-            # print("ready to turn left")
-            pass
-        if(self.forceTurnRight):
-            # print("ready to turn right")
-            pass
-
-        if(self.forceTurnLeft or self.forceTurnRight or self.forceTurnStraight):
-            self.twist.omega = 0  # As soon as we've clocked an apriltag we need to cut lane following so it doesn't do wacky stuff on right turns
-
-
-        if(self.forceTurnLeft and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
-            print("Turning Left")
-            self.twist.omega = 4
-
-        elif(self.forceTurnRight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
-            print("Turning Right")
-            self.twist.omega = -6
-
-        elif(self.forceTurnStraight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
-            print("Straight")
-            self.twist.omega = 0
-
-
-
-        if(rospy.Time.now().to_sec() - self.turnStartTime > self.turnTime):
-            self.forceTurnStraight = False
-            self.forceTurnLeft = False
-            self.forceTurnRight = False
-        ### Force Turns ###
+            self.run_pid = True
 
         self.vel_pub.publish(self.twist)
 
