@@ -63,12 +63,12 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 240
-        self.velocity = 0.25 # 0.25 (cameron's bot is weak)
+        self.velocity = 0.25
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
-        self.P = 0.04   # P for csc22904
-        # self.P = 0.04   # P for csc22930
+        # self.P = 0.04   # P for csc22904
+        self.P = 0.04   # P for csc22930
         self.D = -0.004
         self.I = 0.008
         self.last_error = 0
@@ -184,6 +184,7 @@ class LaneFollowNode(DTROS):
                     print(self.proportional, P, D, self.twist.omega, self.twist.v)
         # PID has been shut off, stop time has elapsed begin turn
         elif dtime > 2 and dtime < 5:
+            print(f"curr tag: {self.lastTagId}, time since stopping: {dtime}")
             # drive straight 
             self.twist.omega = 0
             self.twist.v = self.velocity
@@ -226,7 +227,7 @@ class LaneFollowNode(DTROS):
 
 if __name__ == "__main__":
     node = LaneFollowNode("lanefollow_node")
-    rate = rospy.Rate(10)  # 8hz
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         node.drive()
         node.check_shutdown()

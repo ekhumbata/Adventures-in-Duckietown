@@ -76,7 +76,7 @@ class apriltag_node(DTROS):
         contours, hierarchy = cv2.findContours(duck_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         print("DATA", self.dist_from_april, time.time() - self.stop_time, self.run_pid)
-        if self.dist_from_april < 0.4:
+        if self.dist_from_april < 0.3:
             if self.run_pid and time.time() - self.stop_time > 5:
                 self.stop_time = time.time()
             self.run_pid = False
@@ -88,6 +88,7 @@ class apriltag_node(DTROS):
                     self.run_pid = True
         else:
             self.run_pid = True
+                
 
         self.pub_img = duck_mask
 
