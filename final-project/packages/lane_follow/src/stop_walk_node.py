@@ -36,11 +36,7 @@ class apriltag_node(DTROS):
         self.new_num = False
         self.prev_tag = 0
         self.dist_from_april = 999
-        self.pub_rate = 30
-        self.default_pub_rate = 10
-        self.boosted_pub_rate = 30
-        self.boosted_pub_rate_cycles = 5 # how many iterations to run the boosted pub rate (aka the number of times we drop clock cycles on the boosted rate to accomidate missed identifications)
-        self.boosted_pub_rate_count = 999
+        self.pub_rate = 1
 
         self.yellow_lower = np.array([9, 91, 163])
         self.yellow_upper = np.array([22, 255, 255])
@@ -72,11 +68,18 @@ class apriltag_node(DTROS):
         data_arr = np.frombuffer(msg.data, np.uint8)
         col_img = cv2.imdecode(data_arr, cv2.IMREAD_COLOR)
         hsv = cv2.cvtColor(col_img, cv2.COLOR_BGR2HSV)
+
+        # edges = cv2.Canny(col_img[360:, 270:390],100,150)
+        # print("MEAN", np.mean(edges))
+        # if np.mean(edges) > 4:
+        #     print("STOP!!!!!!!!!!!!")
+        
+
         duck_mask = np.asarray(cv2.inRange(hsv, self.yellow_lower, self.yellow_upper)) #get yellow ducks
         contours, hierarchy = cv2.findContours(duck_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         print("DATA", self.dist_from_april, time.time() - self.stop_time, self.run_pid)
-        if self.dist_from_april < 0.3:
+        if self.dist_from_april < 0.3 :#or np.mean(edges) > 4:
             if self.run_pid and time.time() - self.stop_time > 5:
                 self.stop_time = time.time()
             self.run_pid = False
@@ -122,6 +125,6 @@ if __name__ == '__main__':
         node.check_shutdown()
         node.pub_lane_follow()
 
-        rate = rospy.Rate(node.pub_rate)   # placed here to enable variable refresh
+        rate = rospy.Rate(1)   # placed here to enable variable refresh
         rate.sleep()
     
