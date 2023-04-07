@@ -16,8 +16,6 @@ import time
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
 DEBUG = False
 ENGLISH = False
-DRIVE = False
-PUB_IMG = False
 
 ID_LIST = {"right": 48,
            "left": 50,
@@ -72,7 +70,7 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 200
-        self.velocity = 0.235
+        self.velocity = 0.22
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -207,7 +205,7 @@ class LaneFollowNode(DTROS):
 
         if DEBUG:
             rect_img_msg = CompressedImage(format="jpeg", data=self.jpeg.encode(crop))
-            if(PUB_IMG): self.pub.publish(rect_img_msg)
+            self.pub.publish(rect_img_msg)
 
 
         self.april_priority = 51
@@ -341,8 +339,8 @@ class LaneFollowNode(DTROS):
         # resume PID
         else:
             self.run_pid = True
-        
-        if(DRIVE): self.vel_pub.publish(self.twist)
+
+        self.vel_pub.publish(self.twist)
 
 
     def turn_is_complete(self, dir):
@@ -385,14 +383,14 @@ class LaneFollowNode(DTROS):
         # print("SHUTTING DOWN")
         self.twist.v = 0
         self.twist.omega = 0
-        if(DRIVE): self.vel_pub.publish(self.twist)
+        self.vel_pub.publish(self.twist)
         for i in range(8):
-            if(DRIVE): self.vel_pub.publish(self.twist)
+            self.vel_pub.publish(self.twist)
 
 
 if __name__ == "__main__":
     node = LaneFollowNode("lanefollow_node")
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(15)
     while not rospy.is_shutdown():
         node.drive()
         node.check_shutdown()
