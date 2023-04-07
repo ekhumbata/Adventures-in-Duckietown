@@ -66,7 +66,7 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 200
-        self.velocity = 0.235
+        self.velocity = 0.22
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -374,7 +374,7 @@ class LaneFollowNode(DTROS):
 
 if __name__ == "__main__":
     node = LaneFollowNode("lanefollow_node")
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(15)
     while not rospy.is_shutdown():
         node.drive()
         node.check_shutdown()

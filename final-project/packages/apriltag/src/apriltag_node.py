@@ -293,6 +293,6 @@ if __name__ == '__main__':
         node.pub_id()
         node.check_shutdown()
 
-        rate = rospy.Rate(0.5)   # placed here to enable variable refresh
+        rate = rospy.Rate(10)   # placed here to enable variable refresh
         rate.sleep()
     
