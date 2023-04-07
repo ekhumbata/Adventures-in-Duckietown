@@ -14,7 +14,7 @@ from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, WheelEncoderSt
 import time
 
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
-DEBUG = True
+DEBUG = False
 ENGLISH = False
 DRIVE = False
 PUB_IMG = False
@@ -68,12 +68,12 @@ class LaneFollowNode(DTROS):
             self.offset = -240
         else:
             self.offset = 200
-        self.velocity = 0.25
+        self.velocity = 0.235
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
-        # self.P = 0.04   # P for csc22904
-        self.P = 0.04   # P for csc22930
+        self.P = 0.025   # P for csc22904
+        #self.P = 0.04   # P for csc22930
         self.D = -0.004
         self.I = 0.008
         self.last_error = 0
@@ -164,8 +164,8 @@ class LaneFollowNode(DTROS):
         if len(red_contours) > 0:
             _, y, _, _ = cv2.boundingRect(max(red_contours, key = cv2.contourArea))
             # print("Y", y)
-            if y > 100 and time.time() - self.stop_t > 6:
-                print("STOP", self.lastTagId, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            if y > 100 and time.time() - self.stop_t > 8:
+                # print("STOP", self.lastTagId, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                 self.run_pid = False
                 self.stop_t = time.time()
                 self.stop_ticks[0] = self.ticks[0]
@@ -304,10 +304,10 @@ class LaneFollowNode(DTROS):
             # once we have driven straight for 3 secs begin turn in correct dir
             if self.lastTagId == ID_LIST["left"] and self.straight_is_complete(self.lastTagId):
                 # print("################################################## LEFT")
-                self.twist.omega = 6
+                self.twist.omega = 4.5
             elif self.lastTagId == ID_LIST["right"] and self.straight_is_complete(self.lastTagId):
                 # print("################################################## RIGHT")
-                self.twist.omega = -6
+                self.twist.omega = -4.5
             # omega is already zero, no change needed
             elif self.lastTagId == ID_LIST["straight"] and self.straight_is_complete(self.lastTagId):
                 # print("################################################## STRAIGHT")
@@ -332,21 +332,17 @@ class LaneFollowNode(DTROS):
     def turn_is_complete(self, dir):
         # RIGHT TURN
         if dir == ID_LIST["right"]:
-            # print("DELTA: ", self.ticks[0] - self.stop_ticks[0])
-            if self.ticks[0] - self.stop_ticks[0] < 200:
+            if self.ticks[0] - self.stop_ticks[0] < 250:
                 return False
         # LEFT TURN
         elif dir == ID_LIST["left"]:
-            # print("DELTA: ", self.ticks[1] - self.stop_ticks[1])
-            if self.ticks[1] - self.stop_ticks[1] < 210:
+            if self.ticks[1] - self.stop_ticks[1] < 260:
                 return False
         # GO STRAIGHT
         else:
-            # print("DELTA: ", self.ticks[0] - self.stop_ticks[0])
-            if self.ticks[0] - self.stop_ticks[0] < 150 and self.ticks[1] - self.stop_ticks[1] < 150:
+            if self.ticks[0] - self.stop_ticks[0] < 300 and self.ticks[1] - self.stop_ticks[1] < 300:
                 return False
         # return true if none of the checks fail
-        # print(self.stop_ticks, "&&&&&&&&&&&&")
         return True
     
     def straight_is_complete(self, dir):
@@ -360,7 +356,7 @@ class LaneFollowNode(DTROS):
                 return False
         # GO STRAIGHT
         else:
-            if self.ticks[0] - self.stop_ticks[0] < 150 and self.ticks[1] - self.stop_ticks[1] < 150:
+            if self.ticks[0] - self.stop_ticks[0] < 300 and self.ticks[1] - self.stop_ticks[1] < 300:
                 return False
         # return true if none of the checks fail
         return True
@@ -370,7 +366,7 @@ class LaneFollowNode(DTROS):
               rospy.signal_shutdown("all tags detected")
 
     def hook(self):
-        print("SHUTTING DOWN")
+        # print("SHUTTING DOWN")
         self.twist.v = 0
         self.twist.omega = 0
         if(DRIVE): self.vel_pub.publish(self.twist)
