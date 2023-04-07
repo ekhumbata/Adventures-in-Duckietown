@@ -10,7 +10,7 @@ from std_msgs.msg import Float32, Bool, Int32
 from turbojpeg import TurboJPEG
 import cv2
 import numpy as np
-from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
+from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, WheelEncoderStamped
 import time
 
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
@@ -31,6 +31,9 @@ class LaneFollowNode(DTROS):
         # Publishers & Subscribers
         self.stop_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/run_lane_follow", Bool, self.cb_run, queue_size = 1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
+        self.sub_encoder_ticks_left = rospy.Subscriber("/" +  os.environ['VEHICLE_NAME'] + "/left_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="left")
+        self.sub_encoder_ticks_right = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/right_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="right")
+
 
         self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed",
                                    CompressedImage,
@@ -98,6 +101,8 @@ class LaneFollowNode(DTROS):
 
         self.lcrop = 0
         self.rcrop = -1
+        self.ticks = [0, 0]
+        self.stop_ticks = [0, 0]
 
 
         self.loginfo("Initialized")
@@ -111,6 +116,9 @@ class LaneFollowNode(DTROS):
         if not msg.data:
             self.run_pid = msg.data
             self.stop_t = time.time()
+            self.stop_ticks[0] = self.ticks[0]
+            self.stop_ticks[1] = self.ticks[1]
+            print("setting STOP TICKS")
 
     def tagDistCallback(self, msg):
         self.tagDist = msg.data
@@ -121,6 +129,15 @@ class LaneFollowNode(DTROS):
         except AttributeError:
             return
         self.lastTagId = msg.data
+
+    def cb_encoder_data(self, msg, wheel):
+        if wheel == "right":
+            self.ticks[1] = msg.data
+        else:
+            self.ticks[0] = msg.data
+        print("ticks:", self.ticks)
+        # self.run_pid = False
+        
 
 
     def callback(self, msg):
@@ -147,6 +164,8 @@ class LaneFollowNode(DTROS):
                 print("STOP", self.lastTagId, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                 self.run_pid = False
                 self.stop_t = time.time()
+                self.stop_ticks[0] = self.ticks[0]
+                self.stop_ticks[1] = self.ticks[1]
         
         # Search for lane in front
         max_area = 20
@@ -273,27 +292,27 @@ class LaneFollowNode(DTROS):
                 if DEBUG:
                     print(self.proportional, P, D, self.twist.omega, self.twist.v)
         # PID has been shut off, stop time has elapsed begin turn
-        elif dtime > 2 and dtime < 6:
+        elif dtime > 2 and not self.turn_is_complete(self.lastTagId):
             print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
             # drive straight 
             self.twist.omega = 0
             self.twist.v = self.velocity
             # once we have driven straight for 3 secs begin turn in correct dir
-            if self.lastTagId == ID_LIST["left"] and dtime > 3:
+            if self.lastTagId == ID_LIST["left"] and self.straight_is_complete(self.lastTagId):
                 print("################################################## LEFT")
-                self.twist.omega = np.pi / 2
-            elif self.lastTagId == ID_LIST["right"] and dtime > 3:
+                self.twist.omega = 6
+            elif self.lastTagId == ID_LIST["right"] and self.straight_is_complete(self.lastTagId):
                 print("################################################## RIGHT")
-                self.twist.omega = -np.pi / 2
+                self.twist.omega = -6
             # omega is already zero, no change needed
-            elif self.lastTagId == ID_LIST["straight"] and dtime > 4:
+            elif self.lastTagId == ID_LIST["straight"] and self.straight_is_complete(self.lastTagId):
                 print("################################################## STRAIGHT")
                 pass
             # if not at any intersection sign resume PID
-            elif dtime > 4:
-                print("****************************************************")
-                self.stop_t = 0
-                self.run_pid = True
+            # elif dtime > 4:
+            #     print("****************************************************")
+            #     self.stop_t = 0
+            #     self.run_pid = True
 
         # PID has been shut off, wait for stop time to elapse
         elif dtime < 2:
@@ -306,6 +325,42 @@ class LaneFollowNode(DTROS):
 
         self.vel_pub.publish(self.twist)
 
+    def turn_is_complete(self, dir):
+        # RIGHT TURN
+        if dir == ID_LIST["right"]:
+            print("DELTA: ", self.ticks[0] - self.stop_ticks[0])
+            if self.ticks[0] - self.stop_ticks[0] < 200:
+                return False
+        # LEFT TURN
+        elif dir == ID_LIST["left"]:
+            print("DELTA: ", self.ticks[1] - self.stop_ticks[1])
+            if self.ticks[1] - self.stop_ticks[1] < 210:
+                return False
+        # GO STRAIGHT
+        else:
+            print("DELTA: ", self.ticks[0] - self.stop_ticks[0])
+            if self.ticks[0] - self.stop_ticks[0] < 150 and self.ticks[1] - self.stop_ticks[1] < 150:
+                return False
+        # return true if none of the checks fail
+        print(self.stop_ticks, "&&&&&&&&&&&&")
+        return True
+    
+    def straight_is_complete(self, dir):
+        # RIGHT TURN
+        if dir == ID_LIST["right"]:
+            if self.ticks[0] - self.stop_ticks[0] < 140 and self.ticks[1] - self.stop_ticks[1] < 140:
+                return False
+        # LEFT TURN
+        elif dir == ID_LIST["left"]:
+            if self.ticks[0] - self.stop_ticks[0] < 150 and self.ticks[1] - self.stop_ticks[1] < 150:
+                return False
+        # GO STRAIGHT
+        else:
+            if self.ticks[0] - self.stop_ticks[0] < 150 and self.ticks[1] - self.stop_ticks[1] < 150:
+                return False
+        # return true if none of the checks fail
+        return True
+ 
     def check_shutdown(self):
          if not self.run:
               rospy.signal_shutdown("all tags detected")
