@@ -16,8 +16,6 @@ import time
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
 DEBUG = False
 ENGLISH = False
-DRIVE = False
-PUB_IMG = False
 
 ID_LIST = {"right": 48,
            "left": 50,
@@ -196,7 +194,7 @@ class LaneFollowNode(DTROS):
 
         if DEBUG:
             rect_img_msg = CompressedImage(format="jpeg", data=self.jpeg.encode(crop))
-            if(PUB_IMG): self.pub.publish(rect_img_msg)
+            self.pub.publish(rect_img_msg)
 
     def drive(self):
         # turn_time = 5
@@ -294,7 +292,7 @@ class LaneFollowNode(DTROS):
                 self.twist.v = self.velocity
                 self.twist.omega = P + I + D
                 if DEBUG:
-                    # print(self.proportional, P, D, self.twist.omega, self.twist.v)
+                    print(self.proportional, P, D, self.twist.omega, self.twist.v)
         # PID has been shut off, stop time has elapsed begin turn
         elif dtime > 2 and not self.turn_is_complete(self.lastTagId):
             # print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
@@ -326,8 +324,8 @@ class LaneFollowNode(DTROS):
         # resume PID
         else:
             self.run_pid = True
-        
-        if(DRIVE): self.vel_pub.publish(self.twist)
+
+        self.vel_pub.publish(self.twist)
 
     def turn_is_complete(self, dir):
         # RIGHT TURN
@@ -369,9 +367,9 @@ class LaneFollowNode(DTROS):
         # print("SHUTTING DOWN")
         self.twist.v = 0
         self.twist.omega = 0
-        if(DRIVE): self.vel_pub.publish(self.twist)
+        self.vel_pub.publish(self.twist)
         for i in range(8):
-            if(DRIVE): self.vel_pub.publish(self.twist)
+            self.vel_pub.publish(self.twist)
 
 
 if __name__ == "__main__":
