@@ -59,6 +59,10 @@ class LaneFollowNode(DTROS):
                             queue_size=1,
                             buff_size="20MB")
 
+        self.tagIdPriorityPub = rospy.Publisher("/" + self.veh + "/april_priority",
+                                Int32,
+                                queue_size=1)
+
         self.jpeg = TurboJPEG()
 
 
@@ -105,6 +109,7 @@ class LaneFollowNode(DTROS):
         self.rcrop = -1
         self.ticks = [0, 0]
         self.stop_ticks = [0, 0]
+        self.april_priority = -1
 
 
         self.loginfo("Initialized")
@@ -115,12 +120,18 @@ class LaneFollowNode(DTROS):
         self.run = msg.data
 
     def cb_run(self, msg):
+        self.tagPriorityPub()
         if not msg.data:
             self.run_pid = msg.data
             self.stop_t = time.time()
             self.stop_ticks[0] = self.ticks[0]
             self.stop_ticks[1] = self.ticks[1]
             # print("setting STOP TICKS")
+
+    def tagPriorityPub(self):
+        msg = Int32()
+        msg.data = self.april_priority
+        self.tagIdPriorityPub.publish(msg)
 
     def tagDistCallback(self, msg):
         self.tagDist = msg.data
@@ -197,6 +208,9 @@ class LaneFollowNode(DTROS):
         if DEBUG:
             rect_img_msg = CompressedImage(format="jpeg", data=self.jpeg.encode(crop))
             if(PUB_IMG): self.pub.publish(rect_img_msg)
+
+
+        self.april_priority = 51
 
     def drive(self):
         # turn_time = 5
@@ -294,6 +308,7 @@ class LaneFollowNode(DTROS):
                 self.twist.v = self.velocity
                 self.twist.omega = P + I + D
                 if DEBUG:
+                    pass
                     # print(self.proportional, P, D, self.twist.omega, self.twist.v)
         # PID has been shut off, stop time has elapsed begin turn
         elif dtime > 2 and not self.turn_is_complete(self.lastTagId):
@@ -328,6 +343,7 @@ class LaneFollowNode(DTROS):
             self.run_pid = True
         
         if(DRIVE): self.vel_pub.publish(self.twist)
+
 
     def turn_is_complete(self, dir):
         # RIGHT TURN

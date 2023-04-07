@@ -42,6 +42,7 @@ class apriltag_node(DTROS):
         self.boosted_pub_rate = 30
         self.boosted_pub_rate_cycles = 5 # how many iterations to run the boosted pub rate (aka the number of times we drop clock cycles on the boosted rate to accomidate missed identifications)
         self.boosted_pub_rate_count = 999
+        self.april_priority = -1
 
 
 
@@ -51,6 +52,8 @@ class apriltag_node(DTROS):
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
         self.subscriberCameraInfo = rospy.Subscriber(info_topic, CameraInfo, self.camera_info_callback,  queue_size=1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
+        self.april_priority_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/april_priority", Int32, self.cb_april_priority, queue_size = 1)
+
 
         # publishers
         # self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage, queue_size=10)
@@ -58,7 +61,10 @@ class apriltag_node(DTROS):
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/num_img/compressed', CompressedImage, queue_size=1)
         self.dist_from_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/dist_from_april', Float32, queue_size=1)
         self.april_id = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_id', Int32, queue_size=1)
-        self.april_all = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_all', List, queue_size=1)
+
+
+    def cb_april_priority(self, msg):
+        self.april_priority = msg.data
 
 
     def camera_info_callback(self, msg):
@@ -132,14 +138,13 @@ class apriltag_node(DTROS):
     def pub_id(self):
         msg = Int32()
         msg.data = self.prev_tag
-
         self.april_id.publish(msg)
 
+
     def dist_pub(self):
+        print("Apriltag Distance: {:<10} | Detect: {:<5} | Priority: {:<5}".format( (str(round(self.dist_from_april*2, 5))+"m"), str(self.prev_tag), str(self.april_priority)))
         msg = Float32()
         msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
-        print(f"Apriltag Distance: {self.dist_from_april*2}m")
-
         self.dist_from_pub.publish(msg)
     
     def _matrix_to_quaternion(self, r):
@@ -154,7 +159,7 @@ class apriltag_node(DTROS):
 
 
         # convert the img to greyscale
-        img =  self.col_img
+        img = self.col_img
         try:
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         except cv2.error:
@@ -166,13 +171,13 @@ class apriltag_node(DTROS):
 
 
         # Varibale refresh rate
-        if(self.boosted_pub_rate_count < self.boosted_pub_rate_cycles):
-            # print("boosted cycle running -", self.dist_from_april)
-            self.pub_rate = self.boosted_pub_rate
-            self.boosted_pub_rate_count += 1
-        else:
-            # # print("default cycle running")
-            self.pub_rate = self.default_pub_rate
+        # if(self.boosted_pub_rate_count < self.boosted_pub_rate_cycles):
+        #     # print("boosted cycle running -", self.dist_from_april)
+        #     self.pub_rate = self.boosted_pub_rate
+        #     self.boosted_pub_rate_count += 1
+        # else:
+        #     # # print("default cycle running")
+        #     self.pub_rate = self.default_pub_rate
 
 
         if len(tags) == 0:
@@ -185,10 +190,11 @@ class apriltag_node(DTROS):
             self.pub.publish(msg)
             return
 
-        closest = 0
 
         # # print("netDets", tags)
 
+        closest = 0
+        priority_found = False
         for tag in tags:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
@@ -222,8 +228,10 @@ class apriltag_node(DTROS):
             cv2.putText(img, str(tag_id), (cX - 9, cY + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_col, 2)
             # print("[INFO] tag id: {}".format(tag_id))
 
+
+
             # if multiple seen, set col to the closest tag
-            if diff > closest:
+            if (diff > closest or tag_id == self.april_priority) and not priority_found:
                 # get the points of the box to draw around the closest number
                 w = int(ptB[0]) - int(ptA[0])
                 h = int(ptA[1]) - int(ptD[1])
@@ -233,22 +241,24 @@ class apriltag_node(DTROS):
                 num_top_right = (ptC[0], ptC[1] - (9*h // 8))
                 num_bottom_right = (ptC[0], ptC[1] - h // 8)
                 
-                closest = diff
-
                 # turn rotation matrix into quaternion
                 self.q = self._matrix_to_quaternion(tag.pose_R)
                 self.p = tag.pose_t.T[0]
+                self.prev_tag = tag_id
+                # print("p:", self.p, "q:", self.q)
 
-            # print("p:", self.p, "q:", self.q)
+                closest = diff
+                if(tag_id == self.april_priority): priority_found = True
         
+
         # set the dist from april to the dist to the april tag
         self.dist_from_april = self.p[2] # just the camera x dist
-
-        if self.dist_from_april < 0.5:
-            # print("starting boosted cycles")
-            self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
-
         col_upper = 60
+
+        # if self.dist_from_april < 0.5:
+        #     # print("starting boosted cycles")
+        #     self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
+
         
 
         # draw a box around the closest number
@@ -292,9 +302,9 @@ if __name__ == '__main__':
         node.detect_tag()
         node.dist_pub()
         node.pub_id()
-        node.check_shutdown()
+        # node.check_shutdown()
 
-        rate = rospy.Rate(4)   # placed here to enable variable refresh
+        rate = rospy.Rate(10)   # placed here to enable variable refresh
         rate.sleep()
     
 
@@ -309,22 +319,6 @@ if __name__ == '__main__':
 
 # in spot forward 17cm
 # in spot backwards 84cm
-
-
-# need to publish:
-# pub = [
-#     {
-#         "tagID": 69,
-#         "dist": 420,
-#         "xError": 0,
-#     },
-#     {
-#         "tagID": 69,
-#         "dist": 420,
-#         "xError": 0,
-#     }
-# ]
-
 
 
 
