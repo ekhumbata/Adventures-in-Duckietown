@@ -63,7 +63,7 @@ class apriltag_node(DTROS):
     def camera_info_callback(self, msg):
         self.camera_calibration = msg
 
-        print("== Calibrating Camera ==")
+        # print("== Calibrating Camera ==")
 
         # currRawImage_height = img.shape[0]
         # currRawImage_width = img.shape[1]
@@ -92,7 +92,7 @@ class apriltag_node(DTROS):
         try:
             self.subscriberCameraInfo.shutdown()
             self.safeToRunProgram = True
-            print("== Camera Info Subscriber successfully killed ==")
+            # print("== Camera Info Subscriber successfully killed ==")
         except BaseException:
             pass
 
@@ -166,11 +166,11 @@ class apriltag_node(DTROS):
 
         # Varibale refresh rate
         if(self.boosted_pub_rate_count < self.boosted_pub_rate_cycles):
-            print("boosted cycle running -", self.dist_from_april)
+            # print("boosted cycle running -", self.dist_from_april)
             self.pub_rate = self.boosted_pub_rate
             self.boosted_pub_rate_count += 1
         else:
-            # print("default cycle running")
+            # # print("default cycle running")
             self.pub_rate = self.default_pub_rate
 
 
@@ -186,14 +186,14 @@ class apriltag_node(DTROS):
 
         closest = 0
 
-        # print("netDets", tags)
+        # # print("netDets", tags)
 
         for tag in tags:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
             (ptA, ptB, ptC, ptD) = tag.corners
             diff = abs(ptA[0] - ptB[0])
-            # print("dif:", diff)
+            # # print("dif:", diff)
             ptB = (int(ptB[0]), int(ptB[1]))
             ptC = (int(ptC[0]), int(ptC[1]))
             ptD = (int(ptD[0]), int(ptD[1]))
@@ -293,6 +293,6 @@ if __name__ == '__main__':
         node.pub_id()
         node.check_shutdown()
 
-        rate = rospy.Rate(1)   # placed here to enable variable refresh
+        rate = rospy.Rate(0.5)   # placed here to enable variable refresh
         rate.sleep()
     

@@ -78,18 +78,18 @@ class apriltag_node(DTROS):
         duck_mask = np.asarray(cv2.inRange(hsv, self.yellow_lower, self.yellow_upper)) #get yellow ducks
         contours, hierarchy = cv2.findContours(duck_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        print("DATA", self.dist_from_april, time.time() - self.stop_time, self.run_pid)
+        # print("DATA", self.dist_from_april, time.time() - self.stop_time, self.run_pid)
         if self.dist_from_april < 0.3 :#or np.mean(edges) > 4:
             if self.run_pid and time.time() - self.stop_time > 5:
                 self.stop_time = time.time()
             self.run_pid = False
             if time.time() - self.stop_time > 2:
                 self.run_pid = True
-                try:
-                    self.run_pid = cv2.contourArea(max(contours, key = cv2.contourArea)) < 500
-                except ValueError:
-                    self.run_pid = True
         else:
+            self.run_pid = True
+        try:
+            self.run_pid = cv2.contourArea(max(contours, key = cv2.contourArea)) < 500
+        except ValueError:
             self.run_pid = True
                 
 
@@ -125,6 +125,6 @@ if __name__ == '__main__':
         node.check_shutdown()
         node.pub_lane_follow()
 
-        rate = rospy.Rate(1)   # placed here to enable variable refresh
+        rate = rospy.Rate(0.5)   # placed here to enable variable refresh
         rate.sleep()
     

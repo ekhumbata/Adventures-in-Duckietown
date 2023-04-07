@@ -63,7 +63,7 @@ class apriltag_node(DTROS):
     def camera_info_callback(self, msg):
         self.camera_calibration = msg
 
-        print("== Calibrating Camera ==")
+        #print("== Calibrating Camera ==")
 
         # currRawImage_height = img.shape[0]
         # currRawImage_width = img.shape[1]
@@ -92,7 +92,7 @@ class apriltag_node(DTROS):
         try:
             self.subscriberCameraInfo.shutdown()
             self.safeToRunProgram = True
-            print("== Camera Info Subscriber successfully killed ==")
+            #print("== Camera Info Subscriber successfully killed ==")
         except BaseException:
             pass
 
@@ -137,7 +137,7 @@ class apriltag_node(DTROS):
     def dist_pub(self):
         msg = Float32()
         msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
-        # print(f"Apriltag Distance: {self.dist_from_april*2}m")
+        # #print(f"Apriltag Distance: {self.dist_from_april*2}m")
 
         self.dist_from_pub.publish(msg)
     
@@ -158,16 +158,16 @@ class apriltag_node(DTROS):
 
         tags = self.detector.detect(gray, True, self.camera_parameters, self.tag_size)
 
-        # print("[INFO] {} total AprilTags detected".format(len(tags)))
+        # ##print("[INFO] {} total AprilTags detected".format(len(tags)))
 
 
         # Varibale refresh rate
         if(self.boosted_pub_rate_count < self.boosted_pub_rate_cycles):
-            print("boosted cycle running -", self.dist_from_april)
+            ##print("boosted cycle running -", self.dist_from_april)
             self.pub_rate = self.boosted_pub_rate
             self.boosted_pub_rate_count += 1
         else:
-            # print("default cycle running")
+            # #print("default cycle running")
             self.pub_rate = self.default_pub_rate
 
 
@@ -183,14 +183,14 @@ class apriltag_node(DTROS):
 
         closest = 0
 
-        # print("netDets", tags)
+        # #print("netDets", tags)
 
         for tag in tags:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
             (ptA, ptB, ptC, ptD) = tag.corners
             diff = abs(ptA[0] - ptB[0])
-            # print("dif:", diff)
+            # #print("dif:", diff)
             ptB = (int(ptB[0]), int(ptB[1]))
             ptC = (int(ptC[0]), int(ptC[1]))
             ptD = (int(ptD[0]), int(ptD[1]))
@@ -210,13 +210,13 @@ class apriltag_node(DTROS):
             # get the center (x, y)-coordinates of the AprilTag
             (cX, cY) = (int(tag.center[0]), int(tag.center[1]))
             #cv2.circle(img, (cX, cY), 5, (0, 0, 255), -1)
-            # print("aprilTagX = ", cX, "radfrommid=", rad_from_middle)
+            # #print("aprilTagX = ", cX, "radfrommid=", rad_from_middle)
 
             # draw the tag id on the image
             txt_col = (25, 25, 200)
             tag_id = tag.tag_id
             cv2.putText(img, str(tag_id), (cX - 9, cY + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_col, 2)
-            # print("[INFO] tag id: {}".format(tag_id))
+            # #print("[INFO] tag id: {}".format(tag_id))
 
             # if multiple seen, set col to the closest tag
             if diff > closest:
@@ -235,13 +235,13 @@ class apriltag_node(DTROS):
                 self.q = self._matrix_to_quaternion(tag.pose_R)
                 self.p = tag.pose_t.T[0]
 
-            # print("p:", self.p, "q:", self.q)
+            # #print("p:", self.p, "q:", self.q)
         
         # set the dist from april to the dist to the april tag
         self.dist_from_april = self.p[2] # just the camera x dist
 
         if self.dist_from_april < 0.5:
-            # print("starting boosted cycles")
+            # #print("starting boosted cycles")
             self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
 
         col_upper = 60

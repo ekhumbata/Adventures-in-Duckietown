@@ -107,7 +107,7 @@ class LaneFollowNode(DTROS):
 
 
         currTagId = msg.data
-        # print("tag:", currTagId)
+        # #print("tag:", currTagId)
         
 
         # We've spotted a new tag (and are close enough to start the turn timer)!
@@ -236,21 +236,21 @@ class LaneFollowNode(DTROS):
             self.twist.v = self.velocity
             self.twist.omega = P + I + D
             if DEBUG:
-                print(self.proportional, P, D, self.twist.omega, self.twist.v)
+                #print(self.proportional, P, D, self.twist.omega, self.twist.v)
 
 
         ### Force Truns ###
         if(DEBUG):
-            print("forceLeft?:", self.forceTurnLeft)
-            print("forceRight?:", self.forceTurnRight)
-            print("forceStraight?:", self.forceTurnStraight)
-            print("check:", rospy.Time.now().to_sec() - self.turnStartTime, ">", self.turnTime)
+            #print("forceLeft?:", self.forceTurnLeft)
+            #print("forceRight?:", self.forceTurnRight)
+            #print("forceStraight?:", self.forceTurnStraight)
+            #print("check:", rospy.Time.now().to_sec() - self.turnStartTime, ">", self.turnTime)
 
         if(self.forceTurnLeft):
             # print("ready to turn left")
             pass
         if(self.forceTurnRight):
-            # print("ready to turn right")
+            # #print("ready to turn right")
             pass
 
         if(self.forceTurnLeft or self.forceTurnRight or self.forceTurnStraight):
@@ -258,15 +258,15 @@ class LaneFollowNode(DTROS):
 
 
         if(self.forceTurnLeft and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
-            print("Turning Left")
+            #print("Turning Left")
             self.twist.omega = 4
 
         elif(self.forceTurnRight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
-            print("Turning Right")
+            #print("Turning Right")
             self.twist.omega = -6
 
         elif(self.forceTurnStraight and (rospy.Time.now().to_sec() - self.turnStartTime > self.turnStartDelay)):
-            print("Straight")
+            #print("Straight")
             self.twist.omega = 0
         
 
@@ -284,7 +284,7 @@ class LaneFollowNode(DTROS):
               rospy.signal_shutdown("all tags detected")
 
     def hook(self):
-        print("SHUTTING DOWN")
+        #print("SHUTTING DOWN")
         self.twist.v = 0
         self.twist.omega = 0
         self.vel_pub.publish(self.twist)
