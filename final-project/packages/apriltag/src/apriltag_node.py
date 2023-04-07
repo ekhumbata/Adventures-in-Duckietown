@@ -36,7 +36,7 @@ class apriltag_node(DTROS):
         self.q = 0
         self.new_num = False
         self.prev_tag = 0
-        self.dist_from_april = 999
+        self.dist_from_april = 999/2
         self.pub_rate = 30
         self.default_pub_rate = 10
         self.boosted_pub_rate = 30
@@ -58,6 +58,7 @@ class apriltag_node(DTROS):
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/num_img/compressed', CompressedImage, queue_size=1)
         self.dist_from_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/dist_from_april', Float32, queue_size=1)
         self.april_id = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_id', Int32, queue_size=1)
+        self.april_all = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_all', List, queue_size=1)
 
 
     def camera_info_callback(self, msg):
@@ -137,7 +138,7 @@ class apriltag_node(DTROS):
     def dist_pub(self):
         msg = Float32()
         msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
-        # print(f"Apriltag Distance: {self.dist_from_april*2}m")
+        print(f"Apriltag Distance: {self.dist_from_april*2}m")
 
         self.dist_from_pub.publish(msg)
     
@@ -175,7 +176,7 @@ class apriltag_node(DTROS):
 
 
         if len(tags) == 0:
-            self.dist_from_april = 999
+            self.dist_from_april = 999/2
 
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
@@ -251,23 +252,23 @@ class apriltag_node(DTROS):
         
 
         # draw a box around the closest number
-        cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
-        cv2.line(img, num_bottom_left, num_bottom_right, num_col, 2)
-        cv2.line(img, num_bottom_right, num_top_right, num_col, 2)
-        cv2.line(img, num_top_right, num_top_left, num_col, 2)
+        # cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
+        # cv2.line(img, num_bottom_left, num_bottom_right, num_col, 2)
+        # cv2.line(img, num_bottom_right, num_top_right, num_col, 2)
+        # cv2.line(img, num_top_right, num_top_left, num_col, 2)
 
-        try:
-            # if true then make prediction
-            if self.prev_tag != tag_id and self.dist_from_april < 0.3:
-                # set the masked image of the number to be published to /{bot_name}/num_img/compressed
-                self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
-                # self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                    # masking here gives more gradient b/w black and white pixels
-                self.num_img = cv2.resize(self.num_img, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
-                self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                      # masking here gives a sharper image 
-                self.new_num = True
-                self.prev_tag = tag_id
-        except cv2.error:
-            pass
+        # try:
+        #     # if true then make prediction
+        #     if self.prev_tag != tag_id and self.dist_from_april < 0.3:
+        #         # set the masked image of the number to be published to /{bot_name}/num_img/compressed
+        #         self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
+        #         # self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                    # masking here gives more gradient b/w black and white pixels
+        #         self.num_img = cv2.resize(self.num_img, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
+        #         self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                      # masking here gives a sharper image 
+        #         self.new_num = True
+        #         self.prev_tag = tag_id
+        # except cv2.error:
+        #     pass
 
         # publish the image with the tag id and box to a custom topic
         msg = CompressedImage()
@@ -296,3 +297,50 @@ if __name__ == '__main__':
         rate = rospy.Rate(10)   # placed here to enable variable refresh
         rate.sleep()
     
+
+
+#pid middle april 227
+#turn (it knows l/r from argument)
+#pid correct april (1==207, 2==226, 3==228, 4==75)
+
+
+# 34cm shallow
+# 17cm deep
+
+# in spot forward 17cm
+# in spot backwards 84cm
+
+
+# need to publish:
+# pub = [
+#     {
+#         "tagID": 69,
+#         "dist": 420,
+#         "xError": 0,
+#     },
+#     {
+#         "tagID": 69,
+#         "dist": 420,
+#         "xError": 0,
+#     }
+# ]
+
+
+
+
+
+# if we see multiple
+#    if lane follow is publishing a prioritized one, publish that
+#    else publish closest
+
+
+
+
+## DONT DO (this logic will live in lane follow)
+# LaneFollow will publish state for parking:
+# 0 - not in parking state, lane follow until stop, publish normally
+# 1 - pid traffic light publish traffic light (NO LANE FOLLOW)
+# 2 - pid selected number publish stall number (NO LANE FOLLOW)
+
+## DONT DO
+#For safetry maybe if we see stop apriltag id, reset state to 0.
