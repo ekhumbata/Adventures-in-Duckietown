@@ -36,7 +36,7 @@ class apriltag_node(DTROS):
         self.q = 0
         self.new_num = False
         self.prev_tag = 0
-        self.dist_from_april = 999
+        self.dist_from_april = 999/2
         self.pub_rate = 30
         self.default_pub_rate = 10
         self.boosted_pub_rate = 30
@@ -175,7 +175,7 @@ class apriltag_node(DTROS):
 
 
         if len(tags) == 0:
-            self.dist_from_april = 999
+            self.dist_from_april = 999/2
 
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
@@ -293,6 +293,6 @@ if __name__ == '__main__':
         node.pub_id()
         node.check_shutdown()
 
-        rate = rospy.Rate(1)   # placed here to enable variable refresh
+        rate = rospy.Rate(2)   # placed here to enable variable refresh
         rate.sleep()
     
