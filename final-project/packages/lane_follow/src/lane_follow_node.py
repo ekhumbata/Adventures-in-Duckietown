@@ -153,10 +153,12 @@ class LaneFollowNode(DTROS):
                                                cv2.RETR_EXTERNAL,
                                                cv2.CHAIN_APPROX_NONE)
 
-        red_mask = cv2.inRange(hsv, (0, 100, 150), (10, 200, 255))
-        red_contours, hierarchy = cv2.findContours(red_mask,
+        red_mask_lower = cv2.inRange(hsv, (0, 100, 150), (10, 200, 255))
+        red_mask_upper = cv2.inRange(hsv, (170, 100, 150), (179, 200, 255))
+        red_contours, hierarchy = cv2.findContours((red_mask_lower + red_mask_upper),
                                                cv2.RETR_EXTERNAL,
                                                cv2.CHAIN_APPROX_NONE)
+
         if len(red_contours) > 0:
             _, y, _, _ = cv2.boundingRect(max(red_contours, key = cv2.contourArea))
             print("Y", y)
