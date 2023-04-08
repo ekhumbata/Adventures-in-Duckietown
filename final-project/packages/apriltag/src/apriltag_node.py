@@ -37,12 +37,16 @@ class apriltag_node(DTROS):
         self.new_num = False
         self.prev_tag = 0
         self.dist_from_april = 999/2
+        self.error_from_april = 0
+        self.april_priority = -1
         self.pub_rate = 30
         self.default_pub_rate = 10
         self.boosted_pub_rate = 30
         self.boosted_pub_rate_cycles = 5 # how many iterations to run the boosted pub rate (aka the number of times we drop clock cycles on the boosted rate to accomidate missed identifications)
         self.boosted_pub_rate_count = 999
-        self.april_priority = -1
+        
+
+        self.print_publishers = False
 
 
 
@@ -61,6 +65,7 @@ class apriltag_node(DTROS):
         self.num_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/num_img/compressed', CompressedImage, queue_size=1)
         self.dist_from_pub = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/dist_from_april', Float32, queue_size=1)
         self.april_id = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_id', Int32, queue_size=1)
+        self.april_x_error = rospy.Publisher("/" + os.environ['VEHICLE_NAME'] + '/april_x_error', Int32, queue_size=1)
 
 
     def cb_april_priority(self, msg):
@@ -141,11 +146,18 @@ class apriltag_node(DTROS):
         self.april_id.publish(msg)
 
 
+    def pub_april_x_error(self):
+        msg = Int32()
+        msg.data = self.error_from_april
+        self.april_x_error.publish(msg)
+
+
     def dist_pub(self):
-        print("Apriltag Distance: {:<10} | Detect: {:<5} | Priority: {:<5}".format( (str(round(self.dist_from_april*2, 5))+"m"), str(self.prev_tag), str(self.april_priority)))
+        if(self.print_publishers): print("Apriltag Distance: {:<10} | Detect: {:<5} | Priority: {:<5} | X: {:<10}".format( (str(round(self.dist_from_april*2, 5))+"m"), str(self.prev_tag), str(self.april_priority), round(self.error_from_april, 5) ))
         msg = Float32()
         msg.data = self.dist_from_april*2  # the distance estimate is 50% short, so publish double
         self.dist_from_pub.publish(msg)
+
     
     def _matrix_to_quaternion(self, r):
         T = np.array(((0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 1)), dtype=np.float64)
@@ -182,6 +194,7 @@ class apriltag_node(DTROS):
 
         if len(tags) == 0:
             self.dist_from_april = 999/2
+            self.error_from_april = 0
 
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
@@ -252,7 +265,8 @@ class apriltag_node(DTROS):
         
 
         # set the dist from april to the dist to the april tag
-        self.dist_from_april = self.p[2] # just the camera x dist
+        self.dist_from_april = self.p[2] ## just the camera z dist
+        self.error_from_april = cX-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
         col_upper = 60
 
         # if self.dist_from_april < 0.5:
@@ -302,6 +316,7 @@ if __name__ == '__main__':
         node.detect_tag()
         node.dist_pub()
         node.pub_id()
+        node.pub_april_x_error()
         # node.check_shutdown()
 
         rate = rospy.Rate(10)   # placed here to enable variable refresh
