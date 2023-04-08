@@ -208,6 +208,7 @@ class apriltag_node(DTROS):
 
         closest = 0
         priority_found = False
+        priority_centre = 320
         for tag in tags:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
@@ -261,12 +262,14 @@ class apriltag_node(DTROS):
                 # print("p:", self.p, "q:", self.q)
 
                 closest = diff
-                if(tag_id == self.april_priority): priority_found = True
+                if(tag_id == self.april_priority):
+                    priority_found = True
+                    priority_centre = cX
         
 
         # set the dist from april to the dist to the april tag
         self.dist_from_april = self.p[2] ## just the camera z dist
-        self.error_from_april = cX-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
+        self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
         col_upper = 60
 
         # if self.dist_from_april < 0.5:

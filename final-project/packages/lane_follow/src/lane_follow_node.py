@@ -36,7 +36,8 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        self.parking_stall = 1
+        self.parking_stall = 4
+        self.isBackingIn = False
         ### Parking Stall ###
 
 
@@ -93,7 +94,7 @@ class LaneFollowNode(DTROS):
             self.offset = 200
         # self.velocity = 0.22 # 22910
         # self.velocity = 0.22 # 22904
-        self.velocity = 0.25 # 22930
+        self.velocity = 0.27 # 22930
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
         # self.P = 0.08 # P for csc22910
@@ -133,12 +134,13 @@ class LaneFollowNode(DTROS):
         self.stop_ticks = [0, 0]
         self.april_priority = -1
         self.stage = 0
+        self.substage = 0
         self.hasClockedParkingLotTag = False
 
         self.creepingTicks = 0
         self.creepingInterval = 8
         self.missedDetectionCount = 0
-        self.maxMissedDetectionCount = 2
+        self.maxMissedDetectionCount = 3
 
 
 
@@ -207,9 +209,6 @@ class LaneFollowNode(DTROS):
             self.lcrop
         except AttributeError:
             return
-
-
-        self.april_priority = 227  ## idk if this should really be in here.. this is just so we effectively go into parking state when it is time
 
 
         img = self.jpeg.decode(msg.data)
@@ -397,6 +396,7 @@ class LaneFollowNode(DTROS):
             elif dtime > 2 and not self.turn_is_complete(self.lastTagId):
                 if(self.hasClockedParkingLotTag):
                     self.stage = 4 # ready to go into parking lot stage
+                    self.substage = 0
                     return
 
 
@@ -433,8 +433,12 @@ class LaneFollowNode(DTROS):
 
 
 
+
+
+
+
         #### Temp, hardcode stage 4
-        self.stage = 4
+        # self.stage = 4
 
         #### Stage 4: Parking Lot ####
         if(self.stage == 4):
@@ -443,118 +447,265 @@ class LaneFollowNode(DTROS):
             self.last_error = 0 ### test if we actually need this
             ## temp
 
-
-
-            
-
-            target_depth = 0  # correct depth depends on self.parking_stall - 2 or 4: 34cm   -    1 or 3: 17cm
-            if(self.parking_stall == 2 or self.parking_stall == 4):
-                target_depth = 0.40
-            else:
-                target_depth = 0.20
-
-            ## Tag close enough - STOP!
-            if(self.tagDist < target_depth):
-                print("******* DONE *******")
-                self.twist.v = 0
-                self.twist.omega = 0
-                # self.stage = 5 ## temp - just murder this task to stop out bot
-
-                ### Once we stop, correct twist
-
-
-
-            ## PID middle of tag (only if it IS the priority tag)
-            elif(self.lastTagId == self.april_priority and self.tagDist < 900): # if tag dis is huge, it is missing a detection
-                self.missedDetectionCount = 0
-                # self.creepingTicks = 0
-                # print("PID TAG ID:", self.lastTagId)
-
-                # self.tagXError <- thing to PID off of
-                if(self.tagXError == 0):
-                    self.proportional = None
-                else:
-                    self.proportional = self.tagXError*0.25 ## the tag error is kind large, correct for it less
-
-
-                if self.proportional is None:
-                    self.twist.omega = 0
-                    self.last_error = 0
-                else:
-                    # P Term
-                    P = -self.proportional * self.P
-
-                    # D Term
-                    d_time = (rospy.get_time() - self.last_time)
-                    d_error = (self.proportional - self.last_error) / d_time
-                    self.last_error = self.proportional
-                    self.last_time = rospy.get_time()
-                    D = d_error * self.D
-
-                    # I Term
-                    I = -self.proportional * self.I * d_time
-
-                    self.twist.v = self.velocity
-                    self.twist.omega = P + I + D
-
-
-                    # print(self.proportional, P, D, self.twist.omega, self.twist.v)
-                    # if DEBUG:
-                    #     pass
-
-
-            ## We don't see the priority april - wait a couple frames and keep rolling then try creep
-            elif(self.lastTagId != self.april_priority or self.tagDist > 900):
-                self.missedDetectionCount += 1
-
-                if(self.missedDetectionCount < self.maxMissedDetectionCount): # lost for a couple frames, keep driving in hopes you will see it.
-                    print("lost priority tag, continuing for a couple time steps in case we see again")
-                    self.twist.omega = 0
-                    self.twist.v = 0.5*self.velocity
-
-                else: # we properly lost the tag - start creeping
-                    self.creepingTicks += 1
-
-                    if(self.creepingTicks < self.creepingInterval):
-                        print("creeping ticks:", self.creepingTicks)
-                        if(self.lastTagId == self.parking_stall_ids[3] or self.lastTagId == self.parking_stall_ids[4]): #too far right, spin left a lil
-                            print("left")
-                            self.twist.omega = 10
-                            self.twist.v = 0.1
-                        elif(self.lastTagId == self.parking_stall_ids[1] or self.lastTagId == self.parking_stall_ids[2]): #too far left, spin right a lil
-                            print("right")
-                            self.twist.omega = -10
-                            self.twist.v = 0.1
-                        else:
-                            print("Creeping for visibility")
-                            self.twist.omega = 0
-                            self.twist.v = 0.5*self.velocity
-
-
-                    # pause creeping every couple ticks to potentially detect tags
-                    elif(self.creepingTicks >= self.creepingInterval):
-                        print("pause", self.creepingTicks)
-                        self.twist.omega = 0
-                        self.twist.v = 0
-
-                        if(self.creepingTicks > 2*self.creepingInterval):
-                            self.creepingTicks = 0 # all done break, continue
-
-
-            
-            # targetSpot = self.parking_stall_ids[self.parking_stall]
-
-
-
-
-
-
-
-
-
+            if(self.substage == 0):
+                self.parkingLotSubstage0()
+            elif(self.substage == 1):
+                self.parkingLotSubstage1()
+            elif(self.substage == 2):
+                self.parkingLotSubstage2()
 
 
         if(DRIVE): self.vel_pub.publish(self.twist)
+
+
+
+
+
+
+    def parkingLotSubstage0(self):
+        self.april_priority = 227  # this is just so we effectively go into parking state when it is time
+
+        target_depth = 0  # correct depth depends on self.parking_stall - (2 or 4: 34cm) - (1 or 3: 17cm)
+        if(self.parking_stall == 2 or self.parking_stall == 4):
+            target_depth = 0.40
+        else:
+            target_depth = 0.20
+
+
+
+
+        ## Tag close enough - STOP!
+        if(self.tagDist < target_depth):
+            print("******* Turning *******")
+            self.twist.v = 0
+            self.twist.omega = 0
+
+            # Okay cool! Move to next substage
+            self.substage = 1
+
+
+
+
+        ## PID middle of tag (only if it IS the priority tag)
+        elif(self.lastTagId == self.april_priority and self.tagDist < 900): # if tag distance is huge, it is missing a detection
+            self.pidPriorityTag()
+
+
+        ## We don't see the priority april - wait a couple frames and keep rolling then try creep
+        elif(self.lastTagId != self.april_priority or self.tagDist > 900):
+            self.missedDetectionCount += 1
+
+            # Lost for a couple frames, keep driving in hopes we will see it.
+            if(self.missedDetectionCount < self.maxMissedDetectionCount): 
+                print("|| Missed detection")
+                self.twist.omega = 0
+                self.twist.v = 0.5*self.velocity
+
+
+            # We properly lost the tag - start creeping
+            else:
+                self.creep()
+
+
+
+    def parkingLotSubstage1(self):
+        targetSpotTagId = self.parking_stall_ids[self.parking_stall]
+        self.april_priority = targetSpotTagId
+
+        ## Backing in??? we need to make opposite tag the priority
+
+        # then here we rotate however we need to to get the tag in the middle ish of the camera
+        self.creepRotateUntilPriorityTagIsNearMiddle()
+
+
+    def parkingLotSubstage2(self):
+        target_depth = 0 
+        if(self.isBackingIn):
+            target_depth = 0.9
+        else:
+            target_depth = 0.20
+
+
+
+        ## Pause creeping every couple ticks to potentially detect tags
+        if(self.creepingTicks >= self.creepingInterval):
+            self.creepingTicks += 1
+            print("|| Pause creeping")
+            self.twist.omega = 0
+            self.twist.v = 0
+
+            if(self.creepingTicks > 2*self.creepingInterval):
+                self.creepingTicks = 0 # all done break, continue
+
+
+
+        # print("Dist:", self.tagDist, self.lastTagId, self.april_priority)
+
+
+
+        ## Tag close enough - STOP!
+        if(self.tagDist < target_depth):
+            print("******* DONE *******")
+            self.twist.v = 0
+            self.twist.omega = 0
+
+            # Okay cool! Move to next substage
+            self.substage = 3
+
+
+
+
+        ## PID middle of tag (only if it IS the priority tag)
+        elif(self.lastTagId == self.april_priority and self.tagDist < 900): # if tag distance is huge, it is missing a detection
+            self.pidPriorityTag()
+
+
+        ## We don't see the priority april - wait a couple frames and keep rolling then try creep
+        elif(self.lastTagId != self.april_priority or self.tagDist > 900):
+            self.missedDetectionCount += 1
+
+            # Lost for a couple frames, keep driving in hopes we will see it.
+            if(self.missedDetectionCount < self.maxMissedDetectionCount): 
+                print("|| Missed detection")
+                self.twist.omega = 0
+                self.twist.v = 0.5*self.velocity
+
+
+            # We properly lost the tag - start creeping
+            else:
+                self.creepingTicks += 1
+                if(self.creepingTicks < self.creepingInterval):
+                    print("|| Creeping for visibility")
+                    self.twist.omega = 0
+                    self.twist.v = 0.5*self.velocity
+        
+
+
+
+
+    def pidPriorityTag(self):
+        self.missedDetectionCount = 0
+
+        # print("PID TAG ID:", self.lastTagId)
+
+        # self.tagXError <- thing to PID off of
+        if(self.tagXError == 0):
+            self.proportional = None
+        else:
+            self.proportional = self.tagXError*0.25 ## the tag error is kind large, scale down so pid isn't nuts
+
+
+        if self.proportional is None:
+            self.twist.omega = 0
+            self.last_error = 0
+        else:
+            # P Term
+            P = -self.proportional * self.P
+
+            # D Term
+            d_time = (rospy.get_time() - self.last_time)
+            d_error = (self.proportional - self.last_error) / d_time
+            self.last_error = self.proportional
+            self.last_time = rospy.get_time()
+            D = d_error * self.D
+
+            # I Term
+            I = -self.proportional * self.I * d_time
+
+            self.twist.v = self.velocity
+            self.twist.omega = P + I + D
+
+            # print(self.proportional, P, D, self.twist.omega, self.twist.v)
+            # if DEBUG:
+            #     pass
+
+
+
+    def creepRotateUntilPriorityTagIsNearMiddle(self):
+        self.creepingTicks += 1
+        tagXErrorThreshold = 40
+
+        # Exit condition
+        if((self.lastTagId == self.april_priority and self.tagDist < 900) and (-1 * tagXErrorThreshold < self.tagXError < tagXErrorThreshold)):
+            print("|| Centred!")
+            self.twist.omega = 0
+            self.twist.v = 0
+            self.substage = 2
+
+        # print(self.april_priority, self.lastTagId)
+
+
+
+        # Pausing the creep
+        if(self.creepingTicks >= self.creepingInterval):
+            print("|| Pause creeping, tag error:", self.tagXError)
+            self.twist.omega = 0
+            self.twist.v = 0
+
+            if(self.creepingTicks > 2*self.creepingInterval):
+                self.creepingTicks = 0 # all done break, continue
+            return
+
+
+
+        # Priority tag is NOT detected
+        if(self.lastTagId != self.april_priority or self.tagDist > 900):
+            if(self.parking_stall == 1 or self.parking_stall == 2): # if the tag is 1 or 2, turn left
+                print("|| Creep left, tag error:", self.tagXError)
+                self.twist.omega = 12
+                self.twist.v = 0.25
+            else: # else turn right
+                print("|| Creep right, tag error:", self.tagXError)
+                self.twist.omega = -12
+                self.twist.v = 0.25
+
+        else: #priority tag detected, centre it
+            if(self.tagXError < -1 * tagXErrorThreshold): 
+                print("|| Centre tag turn left, tag error:", self.tagXError)
+                self.twist.omega = 10
+                self.twist.v = 0.2
+            else: 
+                print("|| Centre tag turn right, tag error:", self.tagXError)
+                self.twist.omega = -10
+                self.twist.v = 0.2
+
+        
+
+
+    def creep(self): ## Currently hardcoded to spin to centre tag 227
+        self.creepingTicks += 1
+
+        if(self.creepingTicks < self.creepingInterval):
+            # print("creeping ticks:", self.creepingTicks)
+
+            # Too far right, spin left a lil
+            if(self.lastTagId == self.parking_stall_ids[3] or self.lastTagId == self.parking_stall_ids[4]): 
+                print("|| Creep left")
+                self.twist.omega = 10
+                self.twist.v = 0.1
+
+            # Too far left, spin right a lil
+            elif(self.lastTagId == self.parking_stall_ids[1] or self.lastTagId == self.parking_stall_ids[2]): 
+                print("|| Creep right")
+                self.twist.omega = -10
+                self.twist.v = 0.1
+
+            # Can't see nothing y'all, just wander
+            else:
+                print("|| Creeping for visibility")
+                self.twist.omega = 0
+                self.twist.v = 0.5*self.velocity
+
+
+        # pause creeping every couple ticks to potentially detect tags
+        elif(self.creepingTicks >= self.creepingInterval):
+            print("|| Pause creeping")
+            self.twist.omega = 0
+            self.twist.v = 0
+
+            if(self.creepingTicks > 2*self.creepingInterval):
+                self.creepingTicks = 0 # all done break, continue
+
 
 
     def turn_is_complete(self, dir):
