@@ -36,7 +36,7 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        self.parking_stall = 4
+        self.parking_stall = 3
         self.isBackingIn = False
         ### Parking Stall ###
 
