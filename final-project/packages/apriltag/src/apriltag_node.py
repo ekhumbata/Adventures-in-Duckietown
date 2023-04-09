@@ -117,17 +117,6 @@ class apriltag_node(DTROS):
             msg.data = np.array(cv2.imencode('.jpg', self.grey_img)[1]).tostring()
 
             self.pub.publish(msg)
-    
-    def pub_num(self):
-        # only publish img if it exists, and the pariltag is new
-        if self.num_img.any() and self.new_num:
-            msg = CompressedImage()
-            msg.header.stamp = rospy.Time.now()
-            msg.format = "jpeg"
-            msg.data = np.array(cv2.imencode('.jpg', self.num_img)[1]).tostring()
-
-            self.num_pub.publish(msg)
-            self.new_num = False
 
     def pub_id(self):
         msg = Int32()
@@ -223,16 +212,7 @@ class apriltag_node(DTROS):
             # print("[INFO] tag id: {}".format(tag_id))
 
             # if multiple seen, set col to the closest tag
-            if diff > closest:
-                # get the points of the box to draw around the closest number
-                w = int(ptB[0]) - int(ptA[0])
-                h = int(ptA[1]) - int(ptD[1])
-
-                num_top_left = (ptD[0], ptD[1] - (9*h // 8))
-                num_bottom_left = (ptD[0], ptD[1] - h // 8)
-                num_top_right = (ptC[0], ptC[1] - (9*h // 8))
-                num_bottom_right = (ptC[0], ptC[1] - h // 8)
-                
+            if diff > closest:                
                 closest = diff
 
                 # turn rotation matrix into quaternion
@@ -247,28 +227,6 @@ class apriltag_node(DTROS):
         if self.dist_from_april < 0.5:
             # print("starting boosted cycles")
             self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
-
-        col_upper = 60
-        
-
-        # draw a box around the closest number
-        # cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
-        # cv2.line(img, num_bottom_left, num_bottom_right, num_col, 2)
-        # cv2.line(img, num_bottom_right, num_top_right, num_col, 2)
-        # cv2.line(img, num_top_right, num_top_left, num_col, 2)
-
-        # try:
-        #     # if true then make prediction
-        #     if self.prev_tag != tag_id and self.dist_from_april < 0.3:
-        #         # set the masked image of the number to be published to /{bot_name}/num_img/compressed
-        #         self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
-        #         # self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                    # masking here gives more gradient b/w black and white pixels
-        #         self.num_img = cv2.resize(self.num_img, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
-        #         self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                      # masking here gives a sharper image 
-        #         self.new_num = True
-        #         self.prev_tag = tag_id
-        # except cv2.error:
-        #     pass
 
         # publish the image with the tag id and box to a custom topic
         msg = CompressedImage()
@@ -288,7 +246,6 @@ if __name__ == '__main__':
     # rate = rospy.Rate(10) # once every 10s
     # rate = rospy.Rate(node.pub_rate)
     while not rospy.is_shutdown() and node.run:
-        node.pub_num()
         node.detect_tag()
         node.dist_pub()
         node.pub_id()
