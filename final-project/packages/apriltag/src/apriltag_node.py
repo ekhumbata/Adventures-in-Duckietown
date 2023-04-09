@@ -252,37 +252,12 @@ class apriltag_node(DTROS):
         # set the dist from april to the dist to the april tag
         self.dist_from_april = self.p[2] # just the camera x dist
 
-        if self.dist_from_april < 0.5:
-            # print("starting boosted cycles")
-            self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
-        self.dist_from_april = self.p[2] ## just the camera z dist
-        self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
-        col_upper = 60
-
         # if self.dist_from_april < 0.5:
         #     # print("starting boosted cycles")
         #     self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
-
         
-
-        # draw a box around the closest number
-        # cv2.line(img, num_top_left, num_bottom_left, num_col, 2)
-        # cv2.line(img, num_bottom_left, num_bottom_right, num_col, 2)
-        # cv2.line(img, num_bottom_right, num_top_right, num_col, 2)
-        # cv2.line(img, num_top_right, num_top_left, num_col, 2)
-
-        # try:
-        #     # if true then make prediction
-        #     if self.prev_tag != tag_id and self.dist_from_april < 0.3:
-        #         # set the masked image of the number to be published to /{bot_name}/num_img/compressed
-        #         self.num_img = gray[num_top_left[1]: num_bottom_left[1], num_bottom_left[0]: num_bottom_right[0]]
-        #         # self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                    # masking here gives more gradient b/w black and white pixels
-        #         self.num_img = cv2.resize(self.num_img, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
-        #         self.num_img = cv2.inRange(self.num_img, 0, col_upper)                                      # masking here gives a sharper image 
-        #         self.new_num = True
-        #         self.prev_tag = tag_id
-        # except cv2.error:
-        #     pass
+        self.dist_from_april = self.p[2] ## just the camera z dist
+        self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
 
         # publish the image with the tag id and box to a custom topic
         msg = CompressedImage()
