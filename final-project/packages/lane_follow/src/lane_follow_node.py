@@ -144,6 +144,8 @@ class LaneFollowNode(DTROS):
         self.missedDetectionCount = 0
         self.maxMissedDetectionCount = 3
 
+        self.last_stop_tag = 0
+
 
         #temp
         self.resetCount = 0
@@ -238,22 +240,39 @@ class LaneFollowNode(DTROS):
                                                cv2.RETR_EXTERNAL,
                                                cv2.CHAIN_APPROX_NONE)
 
+        
+
+        blue_mask = cv2.inRange(hsv[:, 200:400], (100, 115, 0), (115, 225, 255))
+        blue_contours, hierarchy = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    
         red_mask_lower = cv2.inRange(hsv, (0, 100, 150), (10, 200, 255))
         red_mask_upper = cv2.inRange(hsv, (170, 100, 150), (179, 200, 255))
-        red_contours, hierarchy = cv2.findContours((red_mask_lower + red_mask_upper),
-                                               cv2.RETR_EXTERNAL,
-                                               cv2.CHAIN_APPROX_NONE)
+        red_contours, hierarchy = cv2.findContours((red_mask_lower + red_mask_upper), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        
+        rect_img_msg = CompressedImage(format="jpeg", data=np.array(cv2.imencode('.jpg', blue_mask)[1]).tostring())
+        self.pub.publish(rect_img_msg)
 
-        if len(red_contours) > 0:
-            _, y, _, _ = cv2.boundingRect(max(red_contours, key = cv2.contourArea))
-            # print("Y", y)
-            if y > 100 and time.time() - self.stop_t > 8:
-                # print("STOP", self.lastTagId, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        stop_contours = red_contours + blue_contours
+
+
+        if len(stop_contours) > 0:
+            largest_cont = max(stop_contours, key = cv2.contourArea)
+            _, y, _, h = cv2.boundingRect(largest_cont)
+            # # if we are at the broken bot
+            # if y+h > 100 and cv2.contourArea(largest_cont) > 8000:
+            #     print("STOP over 8k", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
+            #     self.run_pid = False
+            #     self.stop_t = 0
+            # if we are at a red stop line, or a blue crosswalk
+            if y+h > 100 and time.time() - self.stop_t > 8:
+                print("STOP after time", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 self.run_pid = False
                 self.stop_t = time.time()
+                if cv2.contourArea(largest_cont) > 8000 and len(red_contours) <= 0:
+                    self.stop_t += 6
                 self.stop_ticks[0] = self.ticks[0]
                 self.stop_ticks[1] = self.ticks[1]
-        
+            
         # Search for lane in front
         max_area = 20
         max_idx = -1
@@ -283,83 +302,6 @@ class LaneFollowNode(DTROS):
 
 
     def drive(self):
-        # turn_time = 5
-        # dtime = time.time() - self.stop_t
-        # # PID has been shut off, stop time has elapsed begin turn    
-        # if dtime > 2 and dtime < turn_time:
-        #     print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
-        #     # drive straight 
-        #     self.twist.omega = 0
-        #     self.twist.v = self.velocity
-        #     self.run_pid = False
-        #     # once we have driven straight for 3 secs begin turn in correct dir
-        #     if self.lastTagId == ID_LIST["left"] and dtime > 4:
-        #         print("################################################## LEFT")
-        #         self.lcrop = 0
-        #         self.rcrop = 640 / 2
-        #         self.run_pid = True
-        #     elif self.lastTagId == ID_LIST["right"] and dtime > 4:
-        #         print("################################################## RIGHT")
-        #         self.lcrop = 640 / 2
-        #         self.rcrop = -1
-        #         self.run_pid = True
-        #     # omega is already zero, no change needed
-        #     elif self.lastTagId == ID_LIST["straight"] and dtime > 4:
-        #         print("################################################## STRAIGHT")
-        #         self.lcrop = 0
-        #         self.rcrop = 640 / 2
-        #         self.run_pid = True
-        #     # if not at any intersection sign resume PID
-        #     elif dtime > 4:
-        #         print("****************************************************")
-        #         self.stop_t = 0
-        #         self.run_pid = True
-        #         self.lcrop = 0
-        #         self.rcrop = -1
-
-        # if self.run_pid:
-        #     print("RUNNING PID")
-        #     if self.proportional is None:
-        #         self.twist.omega = 0
-        #         self.last_error = 0
-        #     else:
-        #         # P Term
-        #         P = -self.proportional * self.P
-
-        #         # D Term
-        #         d_time = (rospy.get_time() - self.last_time)
-        #         d_error = (self.proportional - self.last_error) / d_time
-        #         self.last_error = self.proportional
-        #         self.last_time = rospy.get_time()
-        #         D = d_error * self.D
-
-        #         # I Term
-        #         I = -self.proportional * self.I * d_time
-
-        #         self.twist.v = self.velocity
-        #         self.twist.omega = P #+ I + D
-        #         if DEBUG:
-        #             print(self.proportional, P, D, self.twist.omega, self.twist.v)
-        # # PID has been shut off, wait for stop time to elapse
-        # elif dtime < 2:
-        #     self.twist.omega = 0
-        #     self.twist.v = 0
-        #     self.last_error = 0
-        # # resume PID
-        # if dtime > turn_time:
-        #     print("WHACK PRINT RESUME PID")
-        #     self.run_pid = True
-        #     self.lcrop = 0
-        #     self.rcrop = -1
-
-
-        # self.vel_pub.publish(self.twist)
-
-
-
-
-
-
         ## Stage 0: Turns ##
         # Runs by default
 
@@ -376,13 +318,10 @@ class LaneFollowNode(DTROS):
         if(self.lastTagId == 227):
             self.hasClockedParkingLotTag = True # Prime the bot to enter parking lot next time it leaves a stop sign after we clock the 227 apriltag
 
-
-
-
         #### Stage 0,1,2,3: Defualt ####
         if(self.stage == 0 or self.stage == 1 or self.stage == 2 or self.stage == 3):
             dtime = time.time() - self.stop_t
-            if self.run_pid:
+            if self.run_pid or self.last_stop_tag == self.lastTagId and self.lastTagId != 163:
                 # print("RUNNING PID")
                 if self.proportional is None:
                     self.twist.omega = 0
@@ -417,7 +356,7 @@ class LaneFollowNode(DTROS):
 
                 # print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
                 # drive straight 
-                self.twist.omega = 0
+                self.twist.omega = 0.25
                 self.twist.v = self.velocity
                 # once we have driven straight for 3 secs begin turn in correct dir
                 if self.lastTagId == ID_LIST["left"] and self.straight_is_complete(self.lastTagId):
@@ -445,6 +384,7 @@ class LaneFollowNode(DTROS):
             # resume PID
             else:
                 self.run_pid = True
+                self.last_stop_tag = self.lastTagId
 
 
 
@@ -876,7 +816,7 @@ class LaneFollowNode(DTROS):
                 return False
         # LEFT TURN
         elif dir == ID_LIST["left"]:
-            if self.ticks[1] - self.stop_ticks[1] < 260:
+            if self.ticks[1] - self.stop_ticks[1] < 300:
                 return False
         # GO STRAIGHT
         else:
