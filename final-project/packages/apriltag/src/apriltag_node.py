@@ -183,7 +183,7 @@ class apriltag_node(DTROS):
 
         if len(tags) == 0:
             self.dist_from_april = 999/2
-            self.error_from_april = 0
+            self.error_from_april = -0 #should be 0
 
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
