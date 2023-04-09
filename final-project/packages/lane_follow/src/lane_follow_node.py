@@ -36,7 +36,7 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        self.parking_stall = 3
+        self.parking_stall = 2
         self.isBackingIn = False
         ### Parking Stall ###
 
@@ -141,6 +141,8 @@ class LaneFollowNode(DTROS):
         self.creepingInterval = 8
         self.missedDetectionCount = 0
         self.maxMissedDetectionCount = 3
+
+        self.last_stop_tag = 0
 
 
 
@@ -251,7 +253,6 @@ class LaneFollowNode(DTROS):
                 print("STOP after time", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 self.run_pid = False
                 self.stop_t = time.time()
-                print(self.stop_t)
                 if cv2.contourArea(largest_cont) > 8000 and len(red_contours) <= 0:
                     self.stop_t += 8
                 self.stop_ticks[0] = self.ticks[0]
@@ -305,7 +306,7 @@ class LaneFollowNode(DTROS):
         #### Stage 0,1,2,3: Defualt ####
         if(self.stage == 0 or self.stage == 1 or self.stage == 2 or self.stage == 3):
             dtime = time.time() - self.stop_t
-            if self.run_pid:
+            if self.run_pid or self.last_stop_tag == self.lastTagId and self.lastTagId != 163:
                 # print("RUNNING PID")
                 if self.proportional is None:
                     self.twist.omega = 0
@@ -368,6 +369,7 @@ class LaneFollowNode(DTROS):
             # resume PID
             else:
                 self.run_pid = True
+                self.last_stop_tag = self.lastTagId
 
 
 
