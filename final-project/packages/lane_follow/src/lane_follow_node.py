@@ -36,7 +36,7 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        self.parking_stall = 2
+        self.parking_stall = 3
         self.isBackingIn = False
         ### Parking Stall ###
 
@@ -254,7 +254,7 @@ class LaneFollowNode(DTROS):
                 self.run_pid = False
                 self.stop_t = time.time()
                 if cv2.contourArea(largest_cont) > 8000 and len(red_contours) <= 0:
-                    self.stop_t += 8
+                    self.stop_t += 6
                 self.stop_ticks[0] = self.ticks[0]
                 self.stop_ticks[1] = self.ticks[1]
             
@@ -341,7 +341,7 @@ class LaneFollowNode(DTROS):
 
                 # print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
                 # drive straight 
-                self.twist.omega = 0
+                self.twist.omega = 0.25
                 self.twist.v = self.velocity
                 # once we have driven straight for 3 secs begin turn in correct dir
                 if self.lastTagId == ID_LIST["left"] and self.straight_is_complete(self.lastTagId):
