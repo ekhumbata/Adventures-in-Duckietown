@@ -243,7 +243,6 @@ class apriltag_node(DTROS):
                 self.prev_tag = tag_id
                 # print("p:", self.p, "q:", self.q)
 
-                closest = diff
                 if(tag_id == self.april_priority):
                     priority_found = True
                     priority_centre = cX

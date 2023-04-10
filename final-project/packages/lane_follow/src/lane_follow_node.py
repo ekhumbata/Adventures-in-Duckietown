@@ -89,7 +89,7 @@ class LaneFollowNode(DTROS):
         # PID Variables
         self.proportional = None
         if ENGLISH:
-            self.offset = -240
+            self.offset = -200
         else:
             self.offset = 200
         # self.velocity = 0.22 # 22910
@@ -140,7 +140,7 @@ class LaneFollowNode(DTROS):
         self.hasClockedParkingLotTag = False
 
         self.creepingTicks = 0
-        self.creepingInterval = 4 # used to be 8
+        self.creepingInterval = 4
         self.missedDetectionCount = 0
         self.maxMissedDetectionCount = 3
 
@@ -150,6 +150,12 @@ class LaneFollowNode(DTROS):
         #temp
         self.resetCount = 0
         self.stage0DelayedStartCount = 0
+
+
+
+        self.navigateAroundDuckie = False
+        self.navigateAroundDuckieTicks = 0
+        self.navigateAroundDuckieTotalTicks = 75
 
 
 
@@ -234,6 +240,7 @@ class LaneFollowNode(DTROS):
         # print(crop.shape)
         crop_width = crop.shape[1]
         hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+        fullHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, ROAD_MASK[0], ROAD_MASK[1])
         crop = cv2.bitwise_and(crop, crop, mask=mask)
         contours, hierarchy = cv2.findContours(mask,
@@ -244,32 +251,38 @@ class LaneFollowNode(DTROS):
 
         blue_mask = cv2.inRange(hsv[:, 200:400], (100, 115, 0), (115, 225, 255))
         blue_contours, hierarchy = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+        bot_mask = cv2.inRange(fullHSV[150:350, 250:450], (100, 115, 0), (115, 225, 255)) #same as blue but not cropped as low
+        bot_contours, hierarchy = cv2.findContours(bot_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     
         red_mask_lower = cv2.inRange(hsv, (0, 100, 150), (10, 200, 255))
         red_mask_upper = cv2.inRange(hsv, (170, 100, 150), (179, 200, 255))
         red_contours, hierarchy = cv2.findContours((red_mask_lower + red_mask_upper), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         
-        rect_img_msg = CompressedImage(format="jpeg", data=np.array(cv2.imencode('.jpg', blue_mask)[1]).tostring())
+        rect_img_msg = CompressedImage(format="jpeg", data=np.array(cv2.imencode('.jpg', bot_mask)[1]).tostring())
         self.pub.publish(rect_img_msg)
 
-        stop_contours = red_contours + blue_contours
+        stop_contours = red_contours + blue_contours + bot_contours
 
 
         if len(stop_contours) > 0:
             largest_cont = max(stop_contours, key = cv2.contourArea)
             _, y, _, h = cv2.boundingRect(largest_cont)
-            # # if we are at the broken bot
-            # if y+h > 100 and cv2.contourArea(largest_cont) > 8000:
-            #     print("STOP over 8k", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
-            #     self.run_pid = False
-            #     self.stop_t = 0
+            # if we are at the broken bot
+            if y+h > 100 and cv2.contourArea(largest_cont) > 5000 and time.time() - self.stop_t > 8:
+                print("STOP over 8k", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
+                # self.run_pid = False
+                self.stop_t = time.time() ## used to be 0??
+                self.navigateAroundDuckie = True #basically just sets the state to 2
+
             # if we are at a red stop line, or a blue crosswalk
-            if y+h > 100 and time.time() - self.stop_t > 8:
+            elif y+h > 100 and time.time() - self.stop_t > 8:
                 print("STOP after time", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 self.run_pid = False
                 self.stop_t = time.time()
                 if cv2.contourArea(largest_cont) > 8000 and len(red_contours) <= 0:
                     self.stop_t += 6
+                    
                 self.stop_ticks[0] = self.ticks[0]
                 self.stop_ticks[1] = self.ticks[1]
             
@@ -309,7 +322,8 @@ class LaneFollowNode(DTROS):
         # Runs by default
 
         ## Stage 2: Broken Duckie ##
-        # Will likely need this to be its own state (disable default)
+        if(self.navigateAroundDuckie):
+            self.stage = 2
 
         ## Stage 3: Cross Walk ##
         # Runs by default
@@ -318,8 +332,23 @@ class LaneFollowNode(DTROS):
         if(self.lastTagId == 227):
             self.hasClockedParkingLotTag = True # Prime the bot to enter parking lot next time it leaves a stop sign after we clock the 227 apriltag
 
-        #### Stage 0,1,2,3: Defualt ####
-        if(self.stage == 0 or self.stage == 1 or self.stage == 2 or self.stage == 3):
+
+        
+        #### Stage 2: Broken Duckie ####
+        if(self.stage == 2):
+            self.navigateAroundDuckieFunc()
+
+            if(self.navigateAroundDuckieTicks > self.navigateAroundDuckieTotalTicks):
+                self.navigateAroundDuckie = False
+                self.navigateAroundDuckieTicks = 0
+                self.offset = 200 #reset to default
+                self.stage = 3
+                self.run_pid = True
+            
+
+
+        #### Stage 0,1,3: Defualt ####
+        if(self.stage == 0 or self.stage == 1 or self.stage == 3):
             dtime = time.time() - self.stop_t
             if self.run_pid or self.last_stop_tag == self.lastTagId and self.lastTagId != 163:
                 # print("RUNNING PID")
@@ -414,6 +443,46 @@ class LaneFollowNode(DTROS):
 
 
 
+
+
+
+
+    def navigateAroundDuckieFunc(self):
+        self.offset = -200 ## Drive on the other side
+
+        dtime = time.time() - self.stop_t
+        if dtime < 2:
+            print("WAITING!!! | dtime:", dtime)
+            self.twist.omega = 0
+            self.twist.v = 0
+
+        else:
+            print("DRIVING AROUND!!! | dtime:", dtime, "| Proportional:", self.proportional)
+            self.navigateAroundDuckieTicks += 1
+
+            if self.proportional is None:
+                print("I can't see the yellow line. I wait.")
+                self.twist.v = 0
+                self.twist.omega = 0
+                self.last_error = 0
+            else:
+                # P Term
+                P = -self.proportional * self.P
+
+                # D Term
+                d_time = (rospy.get_time() - self.last_time)
+                d_error = (self.proportional - self.last_error) / d_time
+                self.last_error = self.proportional
+                self.last_time = rospy.get_time()
+                D = d_error * self.D
+
+                # I Term
+                I = -self.proportional * self.I * d_time
+
+                self.twist.v = self.velocity
+                self.twist.omega = P + I + D
+
+        if(DRIVE): self.vel_pub.publish(self.twist)
 
 
 
