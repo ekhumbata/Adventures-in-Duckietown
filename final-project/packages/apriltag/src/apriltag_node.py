@@ -183,7 +183,7 @@ class apriltag_node(DTROS):
 
         if len(tags) == 0:
             self.dist_from_april = 999/2
-            self.error_from_april = 0
+            self.error_from_april = -0 #should be 0
 
             msg = CompressedImage()
             msg.header.stamp = rospy.Time.now()
@@ -243,7 +243,6 @@ class apriltag_node(DTROS):
                 self.prev_tag = tag_id
                 # print("p:", self.p, "q:", self.q)
 
-                closest = diff
                 if(tag_id == self.april_priority):
                     priority_found = True
                     priority_centre = cX
