@@ -53,6 +53,8 @@ class LaneFollowNode(DTROS):
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
         self.sub_encoder_ticks_left = rospy.Subscriber("/" +  os.environ['VEHICLE_NAME'] + "/left_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="left")
         self.sub_encoder_ticks_right = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/right_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="right")
+        self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
+
 
 
         self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed",
@@ -86,6 +88,8 @@ class LaneFollowNode(DTROS):
         self.tagIdPriorityPub = rospy.Publisher("/" + self.veh + "/april_priority",
                                 Int32,
                                 queue_size=1)
+        
+        self.pub_node_kill = rospy.Publisher("/" + self.veh + "/kill_nodes", Bool, queue_size=1)
 
         self.jpeg = TurboJPEG()
 
@@ -147,6 +151,7 @@ class LaneFollowNode(DTROS):
         self.maxMissedDetectionCount = 3
 
         self.last_stop_tag = 0
+        self.kill = False
 
 
 
@@ -180,6 +185,11 @@ class LaneFollowNode(DTROS):
         msg = Int32()
         msg.data = self.april_priority
         self.tagIdPriorityPub.publish(msg)
+
+    def kill_pub(self):
+        msg = Bool()
+        msg.data = self.kill
+        self.pub_node_kill.publish(msg)
 
     def tagDistCallback(self, msg):
         self.tagDist = msg.data
@@ -497,6 +507,7 @@ class LaneFollowNode(DTROS):
 
             # Okay cool! Move to next substage
             self.substage = 3
+            self.kill = True
 
 
 
@@ -524,9 +535,6 @@ class LaneFollowNode(DTROS):
                     print("|| Creeping for visibility")
                     self.twist.omega = 0
                     self.twist.v = 0.5*self.velocity
-        
-
-
 
 
     def pidPriorityTag(self):
@@ -686,9 +694,9 @@ class LaneFollowNode(DTROS):
         # return true if none of the checks fail
         return True
  
-    def check_shutdown(self):
-         if not self.run:
-              rospy.signal_shutdown("all tags detected")
+    def cb_check_shutdown(self, msg):
+         if msg.data:
+              rospy.signal_shutdown("PARKED")
 
     def hook(self):
         # print("SHUTTING DOWN")
@@ -705,5 +713,6 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         node.drive()
         node.tagPriorityPub()
-        node.check_shutdown()
+        # node.check_shutdo wn()
+        node.kill_pub()
         rate.sleep()

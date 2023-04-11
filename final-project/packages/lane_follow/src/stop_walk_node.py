@@ -51,6 +51,7 @@ class apriltag_node(DTROS):
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
         self.april_dist_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/dist_from_april", Float32, self.cb_april_dist, queue_size = 1)
+        self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
 
         # publishers
         # self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage, queue_size=10)
@@ -59,6 +60,10 @@ class apriltag_node(DTROS):
 
     def cb_kill(self, msg):
         self.run = msg.data
+
+    def cb_check_shutdown(self, msg):
+         if msg.data:
+              rospy.signal_shutdown("PARKED")
 
     def cb_april_dist(self, msg):
         self.dist_from_april = msg.data

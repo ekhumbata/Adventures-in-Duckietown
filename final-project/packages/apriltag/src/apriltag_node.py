@@ -57,6 +57,7 @@ class apriltag_node(DTROS):
         self.subscriberCameraInfo = rospy.Subscriber(info_topic, CameraInfo, self.camera_info_callback,  queue_size=1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
         self.april_priority_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/april_priority", Int32, self.cb_april_priority, queue_size = 1)
+        self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
 
 
         # publishers
@@ -70,6 +71,10 @@ class apriltag_node(DTROS):
 
     def cb_april_priority(self, msg):
         self.april_priority = msg.data
+
+    def cb_check_shutdown(self, msg):
+         if msg.data:
+              rospy.signal_shutdown("PARKED")
 
 
     def camera_info_callback(self, msg):
