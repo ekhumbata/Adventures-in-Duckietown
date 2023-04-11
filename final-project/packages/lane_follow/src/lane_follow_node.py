@@ -341,7 +341,7 @@ class LaneFollowNode(DTROS):
 
                 # print(f"last tag: {self.lastTagId}, time since stopping: {dtime}, ")
                 # drive straight 
-                self.twist.omega = 0.25
+                self.twist.omega = 0.25 # for csc22910
                 self.twist.v = self.velocity
                 # once we have driven straight for 3 secs begin turn in correct dir
                 if self.lastTagId == ID_LIST["left"] and self.straight_is_complete(self.lastTagId):
