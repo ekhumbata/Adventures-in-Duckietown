@@ -13,6 +13,8 @@ import numpy as np
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, WheelEncoderStamped
 import time
 
+from random import randint
+
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
 DEBUG = False
 ENGLISH = False
@@ -36,7 +38,9 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        self.parking_stall = 3
+        #self.parking_stall = 2
+        self.parking_stall = randint(1,4)
+        print(f"############## PARKING IN STALL {self.parking_stall} #####################")
         self.isBackingIn = False
         ### Parking Stall ###
 
@@ -249,7 +253,8 @@ class LaneFollowNode(DTROS):
             #     self.run_pid = False
             #     self.stop_t = 0
             # if we are at a red stop line, or a blue crosswalk
-            if y+h > 100 and time.time() - self.stop_t > 8:
+            # print(f"time diff: {time.time() - self.stop_t}")
+            if y+h > 100 and time.time() - self.stop_t > 7:
                 print("STOP after time", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 self.run_pid = False
                 self.stop_t = time.time()
@@ -302,6 +307,7 @@ class LaneFollowNode(DTROS):
         ## Stage 4: Parking Lot ##
         if(self.lastTagId == 227):
             self.hasClockedParkingLotTag = True # Prime the bot to enter parking lot next time it leaves a stop sign after we clock the 227 apriltag
+            self.april_priority = 227  # this is just so we effectively go into parking state when it is time
 
         #### Stage 0,1,2,3: Defualt ####
         if(self.stage == 0 or self.stage == 1 or self.stage == 2 or self.stage == 3):
@@ -403,13 +409,13 @@ class LaneFollowNode(DTROS):
 
 
     def parkingLotSubstage0(self):
-        self.april_priority = 227  # this is just so we effectively go into parking state when it is time
 
         target_depth = 0  # correct depth depends on self.parking_stall - (2 or 4: 34cm) - (1 or 3: 17cm)
+        # print(f"depth: {self.tagDist} of tag {self.lastTagId}")
         if(self.parking_stall == 2 or self.parking_stall == 4):
-            target_depth = 0.40
+            target_depth = 0.44 # for close stalls
         else:
-            target_depth = 0.20
+            target_depth = 0.20 # for far stalls
 
 
 

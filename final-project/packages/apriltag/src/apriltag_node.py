@@ -198,6 +198,7 @@ class apriltag_node(DTROS):
         closest = 0
         priority_found = False
         priority_centre = 320
+        priority_p = -1
         for tag in tags:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
@@ -244,9 +245,10 @@ class apriltag_node(DTROS):
                 # print("p:", self.p, "q:", self.q)
 
                 closest = diff
-                if(tag_id == self.april_priority):
-                    priority_found = True
-                    priority_centre = cX
+            if(tag_id == self.april_priority):
+                priority_found = True
+                priority_p = tag.pose_t.T[0]
+                priority_centre = cX
         
 
         # set the dist from april to the dist to the april tag
@@ -255,9 +257,10 @@ class apriltag_node(DTROS):
         # if self.dist_from_april < 0.5:
         #     # print("starting boosted cycles")
         #     self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
-        
-        self.dist_from_april = self.p[2] ## just the camera z dist
-        self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
+        if priority_found:
+            # print(f"found priority dist to {self.april_priority}: {priority_p[2]}")
+            self.dist_from_april = priority_p[2] ## just the camera z dist
+            self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
 
         # publish the image with the tag id and box to a custom topic
         msg = CompressedImage()
