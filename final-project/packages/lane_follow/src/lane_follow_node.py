@@ -152,7 +152,13 @@ class LaneFollowNode(DTROS):
 
         self.last_stop_tag = 0
         self.kill = False
+        
+        
+        self.avoid = False
+        self.lastldticks = None
+        self.lastrdticks = None
 
+        self.custom_ticks = [0, 0]
 
 
 
@@ -169,7 +175,7 @@ class LaneFollowNode(DTROS):
         except AttributeError:
             return
 
-        if not msg.data:
+        if not msg.data and not self.avoid:
             self.run_pid = msg.data
             self.stop_t = time.time()
             self.stop_ticks[0] = self.ticks[0]
@@ -254,7 +260,7 @@ class LaneFollowNode(DTROS):
         stop_contours = red_contours + blue_contours
 
 
-        if len(stop_contours) > 0:
+        if len(stop_contours) > 0 and not self.avoid:
             largest_cont = max(stop_contours, key = cv2.contourArea)
             _, y, _, h = cv2.boundingRect(largest_cont)
             # # if we are at the broken bot
@@ -270,6 +276,7 @@ class LaneFollowNode(DTROS):
                 self.stop_t = time.time()
                 if cv2.contourArea(largest_cont) > 8000 and len(red_contours) <= 0:
                     self.stop_t += 6
+                    self.avoid = True
                 self.stop_ticks[0] = self.ticks[0]
                 self.stop_ticks[1] = self.ticks[1]
             
@@ -384,7 +391,8 @@ class LaneFollowNode(DTROS):
 
             # resume PID
             else:
-                self.run_pid = True
+                if not self.avoid:
+                    self.run_pid = True
                 self.last_stop_tag = self.lastTagId
 
 
@@ -693,6 +701,69 @@ class LaneFollowNode(DTROS):
                 return False
         # return true if none of the checks fail
         return True
+    
+    def bot_avoid(self):
+        if self.avoid:
+            self.run_pid = False
+            
+            #init last left difference in ticks
+            if self.lastldticks == None:
+                self.lastldticks = self.ticks[0] 
+            #init last right difference in ticks
+            if self.lastrdticks == None:
+                self.lastrdticks = self.ticks[1]
+                self.custom_ticks = [0, 0]
+
+            #update last left and right ticks with the difference
+            
+
+            self.custom_ticks[0] += abs(self.lastldticks - self.ticks[0])
+            self.custom_ticks[1] += abs(self.lastrdticks - self.ticks[1])
+
+            self.lastldticks = self.ticks[0]
+            self.lastrdticks = self.ticks[1]
+
+            #set the current left and right ticks
+            ldticks = self.lastldticks - self.stop_ticks[0]
+            rdticks = self.lastrdticks - self.stop_ticks[1]
+
+
+            # reverse for 140 ticks
+            if self.custom_ticks[0] < 70 and self.custom_ticks[1] < 70:
+                print("STAGE 1", self.custom_ticks[0], self.custom_ticks[1])
+                self.twist.v = -0.26
+                self.twist.omega = 0
+            elif self.custom_ticks[0] < 400 and self.custom_ticks[1] < 400:
+                self.offset = -200 ## Drive on the other side
+                self.run_pid = True
+            # rotate ~45 degrees CCW
+            # elif self.custom_ticks[1] < 120:
+            #     print("STAGE 2")
+            #     self.twist.v = 0.1
+            #     self.twist.omega = 4
+            # # go straight for 140 ticks
+            # elif self.custom_ticks[0] < 280 and self.custom_ticks[1] < 330:
+            #     print("STAGE 3")
+            #     self.twist.v = 0.26
+            #     self.twist.omega = 0
+            # # rotate ~45 degrees CW
+            # elif self.custom_ticks[0] < 320:
+            #     print("STAGE 4")
+            #     self.twist.v = 0.1
+            #     self.twist.omega = -4.5
+            # go straight past bot
+            # elif self.custom_ticks[0] < 530 and self.custom_ticks[1] < 540:
+            #     print("STAGE 5")
+            #     self.twist.v = 0.26
+            #     self.twist.omega = 0
+            # end avoidance sequence
+            else:
+                print("EXITING...", self.custom_ticks[0], self.custom_ticks[1])
+                self.avoid = False
+                self.offset = 200
+                self.run_pid = True
+            if(DRIVE): 
+                self.vel_pub.publish(self.twist)
  
     def cb_check_shutdown(self, msg):
          if msg.data:
@@ -713,6 +784,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         node.drive()
         node.tagPriorityPub()
+        node.bot_avoid()
         # node.check_shutdo wn()
         node.kill_pub()
         rate.sleep()
