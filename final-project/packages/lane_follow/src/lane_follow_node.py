@@ -704,6 +704,7 @@ class LaneFollowNode(DTROS):
     
     def bot_avoid(self):
         if self.avoid:
+            # turn pid off for dead reckon
             self.run_pid = False
             
             #init last left difference in ticks
@@ -723,10 +724,6 @@ class LaneFollowNode(DTROS):
             self.lastldticks = self.ticks[0]
             self.lastrdticks = self.ticks[1]
 
-            #set the current left and right ticks
-            ldticks = self.lastldticks - self.stop_ticks[0]
-            rdticks = self.lastrdticks - self.stop_ticks[1]
-
 
             # reverse for 140 ticks
             if self.custom_ticks[0] < 70 and self.custom_ticks[1] < 70:
@@ -736,32 +733,13 @@ class LaneFollowNode(DTROS):
             elif self.custom_ticks[0] < 400 and self.custom_ticks[1] < 400:
                 self.offset = -200 ## Drive on the other side
                 self.run_pid = True
-            # rotate ~45 degrees CCW
-            # elif self.custom_ticks[1] < 120:
-            #     print("STAGE 2")
-            #     self.twist.v = 0.1
-            #     self.twist.omega = 4
-            # # go straight for 140 ticks
-            # elif self.custom_ticks[0] < 280 and self.custom_ticks[1] < 330:
-            #     print("STAGE 3")
-            #     self.twist.v = 0.26
-            #     self.twist.omega = 0
-            # # rotate ~45 degrees CW
-            # elif self.custom_ticks[0] < 320:
-            #     print("STAGE 4")
-            #     self.twist.v = 0.1
-            #     self.twist.omega = -4.5
-            # go straight past bot
-            # elif self.custom_ticks[0] < 530 and self.custom_ticks[1] < 540:
-            #     print("STAGE 5")
-            #     self.twist.v = 0.26
-            #     self.twist.omega = 0
-            # end avoidance sequence
             else:
                 print("EXITING...", self.custom_ticks[0], self.custom_ticks[1])
                 self.avoid = False
                 self.offset = 200
                 self.run_pid = True
+                self.stop_t = 0
+                self.stop_ticks = [0, 0]
             if(DRIVE): 
                 self.vel_pub.publish(self.twist)
  
