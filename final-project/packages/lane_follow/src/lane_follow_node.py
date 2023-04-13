@@ -269,7 +269,7 @@ class LaneFollowNode(DTROS):
             largest_cont = max(stop_contours, key = cv2.contourArea)
             _, y, _, h = cv2.boundingRect(largest_cont)
             # if we are at the broken bot
-            if y+h > 100 and cv2.contourArea(largest_cont) > 5000 and time.time() - self.stop_t > 8:
+            if y+h > 100 and cv2.contourArea(largest_cont) > 5000 and time.time() - self.stop_t > 2:
                 print("STOP over 8k", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 # self.run_pid = False
                 self.stop_t = time.time() ## used to be 0??
