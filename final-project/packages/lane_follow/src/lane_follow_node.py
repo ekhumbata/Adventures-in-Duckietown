@@ -38,8 +38,8 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        #self.parking_stall = 2
-        self.parking_stall = randint(1,4)
+        self.parking_stall = 2
+        # self.parking_stall = randint(1,4)
         print(f"############## PARKING IN STALL {self.parking_stall} #####################")
         self.isBackingIn = False
         ### Parking Stall ###

@@ -122,7 +122,9 @@ class apriltag_node(DTROS):
 if __name__ == '__main__':
     # create the node
     node = apriltag_node(node_name='april_tag_detector')
+    # print("STARTING SLEEP...")
     time.sleep(30)
+    print("WAKING UP STOP WALK")
 
     # rate = rospy.Rate(10) # once every 10s
     # rate = rospy.Rate(node.pub_rate)
