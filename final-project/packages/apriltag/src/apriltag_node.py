@@ -295,33 +295,3 @@ if __name__ == '__main__':
         rate.sleep()
     
 
-
-#pid middle april 227
-#turn (it knows l/r from argument)
-#pid correct april (1==207, 2==226, 3==228, 4==75)
-
-
-# 34cm shallow
-# 17cm deep
-
-# in spot forward 17cm
-# in spot backwards 84cm
-
-
-
-
-# if we see multiple
-#    if lane follow is publishing a prioritized one, publish that
-#    else publish closest
-
-
-
-
-## DONT DO (this logic will live in lane follow)
-# LaneFollow will publish state for parking:
-# 0 - not in parking state, lane follow until stop, publish normally
-# 1 - pid traffic light publish traffic light (NO LANE FOLLOW)
-# 2 - pid selected number publish stall number (NO LANE FOLLOW)
-
-## DONT DO
-#For safetry maybe if we see stop apriltag id, reset state to 0.

@@ -25,157 +25,168 @@ ID_LIST = {"right": 48,
            "straight": 56}
 
 class LaneFollowNode(DTROS):
+    """
+    This node basically does everything???
+
+    It will lane follow, handle our turns, stop at blue/red line, stop behind the broken duckiebot and park.
+
+    (We really should break this up...)
+    """
 
     def __init__(self, node_name):
         super(LaneFollowNode, self).__init__(node_name=node_name, node_type=NodeType.GENERIC)
-        self.node_name = node_name
-        self.veh = os.environ["VEHICLE_NAME"]
-        self.parking_stall_ids = [-1, 207, 226, 228, 75]  # spot 0 doesn't exist
-
-
-
-
-
-
-        ### Parking Stall ###
+        
+                ### Parking Stall ###
         self.parking_stall = 2
         # self.parking_stall = randint(1,4)
         print(f"############## PARKING IN STALL {self.parking_stall} #####################")
         self.isBackingIn = False
         ### Parking Stall ###
+        
+        
+        self.node_name = node_name
+        self.veh = os.environ["VEHICLE_NAME"]
+        self.parking_stall_ids = [-1, 207, 226, 228, 75]  # spot 0 doesn't exist, init to -1
 
 
-
-
-
-        # Publishers & Subscribers
+        # Subscribers
         self.stop_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/run_lane_follow", Bool, self.cb_run, queue_size = 1)
-        self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
+        self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1) #likely legacy, need to refactor/delete
         self.sub_encoder_ticks_left = rospy.Subscriber("/" +  os.environ['VEHICLE_NAME'] + "/left_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="left")
         self.sub_encoder_ticks_right = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/right_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="right")
         self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
+        self.sub = rospy.Subscriber("/" + self.veh + "/camera_node/image/compressed", CompressedImage, self.callback, queue_size=1, buff_size="20MB")
+        self.tagIdSub = rospy.Subscriber("/" + self.veh + "/april_id", Int32, self.tagIdCallback, queue_size=1, buff_size="20MB")
+        self.tagIdSub = rospy.Subscriber("/" + self.veh + "/dist_from_april", Float32, self.tagDistCallback, queue_size=1, buff_size="20MB")
+        self.tagXErrorSub = rospy.Subscriber("/" + self.veh + "/april_x_error", Int32, self.tagXErrorCallback, queue_size=1, buff_size="20MB")
 
-
-
-        self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed",
-                                   CompressedImage,
-                                   queue_size=1)
-        self.sub = rospy.Subscriber("/" + self.veh + "/camera_node/image/compressed",
-                                    CompressedImage,
-                                    self.callback,
-                                    queue_size=1,
-                                    buff_size="20MB")
-        self.vel_pub = rospy.Publisher("/" + self.veh + "/car_cmd_switch_node/cmd",
-                                       Twist2DStamped,
-                                       queue_size=1)
-        self.tagIdSub = rospy.Subscriber("/" + self.veh + "/april_id",
-                            Int32,
-                            self.tagIdCallback,
-                            queue_size=1,
-                            buff_size="20MB")
-        self.tagIdSub = rospy.Subscriber("/" + self.veh + "/dist_from_april",
-                            Float32,
-                            self.tagDistCallback,
-                            queue_size=1,
-                            buff_size="20MB")
-
-        self.tagXErrorSub = rospy.Subscriber("/" + self.veh + "/april_x_error",
-                            Int32,
-                            self.tagXErrorCallback,
-                            queue_size=1,
-                            buff_size="20MB")
-
-        self.tagIdPriorityPub = rospy.Publisher("/" + self.veh + "/april_priority",
-                                Int32,
-                                queue_size=1)
-        
+        # Publishers
+        self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed", CompressedImage, queue_size=1)
+        self.vel_pub = rospy.Publisher("/" + self.veh + "/car_cmd_switch_node/cmd", Twist2DStamped, queue_size=1)
+        self.tagIdPriorityPub = rospy.Publisher("/" + self.veh + "/april_priority", Int32, queue_size=1)
         self.pub_node_kill = rospy.Publisher("/" + self.veh + "/kill_nodes", Bool, queue_size=1)
-
         self.jpeg = TurboJPEG()
 
 
         # PID Variables
-        self.proportional = None
+        # the number of pixels to the centre of the PID target
+        self.proportional = None                                    
+       
+        # left hand or right hand drive
         if ENGLISH:
             self.offset = -200
         else:
             self.offset = 200
-        # self.velocity = 0.22 # 22910
+        
+        self.velocity = 0.22 # 22910
         # self.velocity = 0.22 # 22904
-        self.velocity = 0.27 # 22930
+        # self.velocity = 0.27 # 22930
+        
+        #sets the bot velocity(v) and angle (omega)
         self.twist = Twist2DStamped(v=self.velocity, omega=0)
 
+        # Set the PID gains 
         # self.P = 0.08 # P for csc22910
         # self.P = 0.025   # P for csc22904
         self.P = 0.04   # P for csc22930
         self.D = -0.004
-        self.I = 0.008
+        self.I = 0.008  
+
+        # used to compute D term of PID
         self.last_error = 0
         self.last_time = rospy.get_time()
-        self.run = True
+        self.run = True # possibly legacy
 
+        # time since last stop
         self.stop_t = 0
 
-        # Wait a litcallbackg motor commands
-        rospy.Rate(0.20).sleep()
-
-        # Shutdown hook
-        rospy.on_shutdown(self.hook)
-
-        # Force Turns
-        self.lastLastTagId = None
+        # April tag globals
         self.lastTagId = None
         self.safeTagId = None
         self.tagDist = 999
         self.tagXError = 0
-        self.permittedActions = [-1] # -1: lane follow, 0: straight, 1: left, 2: right
-        self.forceTurnStraight = False
-        self.forceTurnLeft = False
-        self.forceTurnRight = False
-        self.turnStartTime = rospy.Time.now().to_sec()
-        self.turnStartDelay = 1.25 # how long to continue driving normally before turning
-        self.turnTime = 2.25 # rospy time is in seconds (must be greater than turnStartDelay)
-        self.randomPath = False
+
+        # determine if PID should be running
         self.run_pid = True
 
+        # crops for width of the image we are seeing (crops for y are hardcoded)
         self.lcrop = 0
         self.rcrop = -1
+
+        # ticks of the right and left wheels
         self.ticks = [0, 0]
+
+        # records the number of wheel ticks at the time of a stop
         self.stop_ticks = [0, 0]
+        
+        #april tag to PID off of
         self.april_priority = -1
+
+        # FSM to determine stage of the town
+        ## Stage 0: Turns ##
+        # Runs by default
+        ## Stage 1: Cross Walk ##
+        # Runs by default
+        ## Stage 2: Broken Duckie ##
+        ## Stage 3: Cross Walk ##
+        # Runs by default
+        ## Stage 4: Parking Lot ##
         self.stage = 0
+        
+        # substages for parkinglot
+        # stage 0 : drive to centre april tage
+        # stage 1: turn to face april tag
+        # stage 3: drive into stall and stop when close to sign
         self.substage = 0
+        
+        # bool to determine if we have seen the parking lot april tag
         self.hasClockedParkingLotTag = False
 
+        # amount of ticks creeping towards tag
         self.creepingTicks = 0
+
+        # counter for determining how much to turn creep
         self.creepingInterval = 4
+
+        # allow a detection buffer 
         self.missedDetectionCount = 0
+
+        # the maximum number of detections to miss
         self.maxMissedDetectionCount = 3
 
+        # tag id of the last april tag we stopped at
         self.last_stop_tag = 0
+
+        # kill the program?
         self.kill = False
 
-
-        #temp
-        self.resetCount = 0
+        # get detections before we change substages
         self.stage0DelayedStartCount = 0
-
-
 
         self.navigateAroundDuckie = False
         self.navigateAroundDuckieTicks = 0
         self.navigateAroundDuckieTotalTicks = 75
 
+        # Wait a little for motor commands
+        rospy.Rate(0.20).sleep()
 
+        # Shutdown hook
+        rospy.on_shutdown(self.hook)
 
         self.loginfo("Initialized")
 
 
 
     def cb_kill(self, msg):
+        """
+        Legacy, could possibly delete
+        """
         self.run = msg.data
 
     def cb_run(self, msg):
+        """
+        Callback to stop the bot if an external node asks it to stop
+        """
         try: # This func will probably run before the var is defined, so just return early to avoid errors
             self.ticks
         except AttributeError:
@@ -189,6 +200,9 @@ class LaneFollowNode(DTROS):
             # print("setting STOP TICKS")
 
     def tagPriorityPub(self):
+        """
+        Publisher to force the april tag node to lock onto the priority
+        """
         try: # This func will probably run before the var is defined, so just return early to avoid errors
             self.april_priority
         except AttributeError:
@@ -199,34 +213,41 @@ class LaneFollowNode(DTROS):
         self.tagIdPriorityPub.publish(msg)
 
     def kill_pub(self):
+        """
+        Publishes a message to kill all nodes
+        """
         msg = Bool()
         msg.data = self.kill
         self.pub_node_kill.publish(msg)
 
     def tagDistCallback(self, msg):
+        """
+        Callback to get the distance from the current april tag
+        """
         self.tagDist = msg.data
 
     def tagXErrorCallback(self, msg):
+        """
+        Callback to get the x error from the current april tag
+        """
         self.tagXError = msg.data
 
     def tagIdCallback(self, msg):
+        """
+        Callback to get the current ID from the april tag node
+        """
         try: # This func will probably run before the var is defined, so just return early to avoid errors
             self.lastTagId
         except AttributeError:
             return
-
-
-        self.lastLastTagId = self.lastTagId
         self.lastTagId = msg.data
 
-        self.safeTagId = msg.data # hardcoded for now
-        # Safe if we see the same two detections in a row
-        # if(self.lastLastTagId == self.lastTagId):
-        #     self.safeTagId = self.lastTagId
-        # else:
-        #     self.safeTagId = -1
+        self.safeTagId = msg.data 
 
     def cb_encoder_data(self, msg, wheel):
+        """
+        Callback to get the left and right wheel ticks
+        """
         try: # This func will probably run before the var is defined, so just return early to avoid errors
             self.ticks
         except AttributeError:
@@ -242,6 +263,9 @@ class LaneFollowNode(DTROS):
 
 
     def callback(self, msg):
+        """
+        Callback for image processing -> used in lane follow and stopping
+        """
         try: # This func will probably run before the var is defined, so just return early to avoid errors
             self.lcrop
         except AttributeError:
@@ -287,7 +311,7 @@ class LaneFollowNode(DTROS):
                 print("STOP over 8k", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 # self.run_pid = False
                 self.stop_t = time.time() ## used to be 0??
-                self.navigateAroundDuckie = True #basically just sets the state to 2
+                #self.navigateAroundDuckie = True #basically just sets the state to 2
 
             # if we are at a red stop line, or a blue crosswalk
             # print(f"time diff: {time.time() - self.stop_t}")
@@ -330,6 +354,10 @@ class LaneFollowNode(DTROS):
 
 
     def drive(self):
+        """
+        Control node -> handles calling the correct node given the state
+        """
+
         ## Stage 0: Turns ##
         # Runs by default
 
@@ -432,11 +460,6 @@ class LaneFollowNode(DTROS):
                 self.last_stop_tag = self.lastTagId
 
 
-
-
-
-
-
         #### Temp, hardcode stage 4
         # self.stage = 4
 
@@ -459,11 +482,12 @@ class LaneFollowNode(DTROS):
 
 
 
-
-
-
-
     def navigateAroundDuckieFunc(self):
+        """
+        TODO: Complete this!
+
+        This function will naviagate around the broken duckiebot
+        """
         self.offset = -200 ## Drive on the other side
 
         dtime = time.time() - self.stop_t
@@ -503,9 +527,12 @@ class LaneFollowNode(DTROS):
 
 
 
-
     def parkingLotSubstage0(self):
+        """
+        Localize to main parking lot tag
 
+        If main tag is missed, bot will spin until it is found
+        """
         target_depth = 0  # correct depth depends on self.parking_stall - (2 or 4: 34cm) - (1 or 3: 17cm)
         # print(f"depth: {self.tagDist} of tag {self.lastTagId}")
         if(self.parking_stall == 2 or self.parking_stall == 4):
@@ -553,6 +580,9 @@ class LaneFollowNode(DTROS):
 
 
     def parkingLotSubstage1(self):
+        """
+        Turn to face april tag of interest
+        """
         ## Backing in??? we need to make opposite tag the priority
         if(self.isBackingIn):
             if(self.parking_stall == 1):
@@ -566,8 +596,6 @@ class LaneFollowNode(DTROS):
             else:
                 self.parking_stall == 3
 
-
-
         targetSpotTagId = self.parking_stall_ids[self.parking_stall]
         self.april_priority = targetSpotTagId
 
@@ -576,6 +604,9 @@ class LaneFollowNode(DTROS):
 
 
     def parkingLotSubstage2(self):
+        """
+        Drive into stall, making sure not to hit parking sign
+        """
         target_depth = 0 
         if(self.isBackingIn):
             self.parkingLotSubstage2Reverse()
@@ -584,8 +615,10 @@ class LaneFollowNode(DTROS):
             
 
 
-
     def parkingLotSubstage2Forward(self):
+        """
+        Pull into parking stall
+        """
         target_depth = 0.20
 
         ## Pause creeping every couple ticks to potentially detect tags
@@ -598,11 +631,6 @@ class LaneFollowNode(DTROS):
             if(self.creepingTicks > 2*self.creepingInterval):
                 self.creepingTicks = 0 # all done break, continue
 
-
-
-        # print("Dist:", self.tagDist, self.safeTagId, self.april_priority)
-
-
         ## Tag close enough - STOP!
         if(self.tagDist < target_depth):
             print("******* DONE *******")
@@ -613,13 +641,9 @@ class LaneFollowNode(DTROS):
             self.substage = 3
             self.kill = True
 
-
-
-
         ## PID middle of tag (only if it IS the priority tag)
         elif(self.safeTagId == self.april_priority and self.tagDist < 900): # if tag distance is huge, it is missing a detection
             self.pidPriorityTag()
-
 
         ## We don't see the priority april - wait a couple frames and keep rolling then try creep
         elif(self.safeTagId != self.april_priority or self.tagDist > 900):
@@ -631,7 +655,6 @@ class LaneFollowNode(DTROS):
                 self.twist.omega = 0
                 self.twist.v = 0.5*self.velocity
 
-
             # We properly lost the tag - start creeping
             else:
                 self.creepingTicks += 1
@@ -642,6 +665,9 @@ class LaneFollowNode(DTROS):
 
 
     def pidPriorityTag(self):
+        """
+        PID off of the priority april tag
+        """
         self.missedDetectionCount = 0
 
         # print("PID TAG ID:", self.safeTagId)
@@ -688,22 +714,11 @@ class LaneFollowNode(DTROS):
 
 
     def creepRotateUntilPriorityTagIsNearMiddle(self):
+        """
+        Shuffle left and right until the priority april tag is centred
+        """
         self.creepingTicks += 1
         tagXErrorThreshold = 20
-
-
-        ####### Temp reset it
-        # if(self.resetCount > 0):
-        #     print("|| == RESETTING == ||")
-        #     self.twist.omega = 0
-        #     self.twist.v = 0
-
-        #     self.resetCount += 1
-        #     if(self.resetCount > 50):
-        #         self.substage = 0
-        #     return #stop trying
-        ####### Temp reset it
-
 
         # Exit condition -- We see a tag, its the priority, it is within error, and we are paused creeping (also the error should not be exactly 0 - this indicates missed tag)
         if((self.safeTagId == self.april_priority and self.tagDist < 900) and (-1 * tagXErrorThreshold < self.tagXError < tagXErrorThreshold) and self.tagXError != 0 and self.creepingTicks >= self.creepingInterval):
@@ -712,9 +727,6 @@ class LaneFollowNode(DTROS):
             self.twist.v = 0
 
             self.substage = 2 # temp, uncommect again
-            self.resetCount += 1 # For reset testing - unused
-
-
 
 
         # Pausing the creep
@@ -726,7 +738,6 @@ class LaneFollowNode(DTROS):
             if(self.creepingTicks > 2*self.creepingInterval):
                 self.creepingTicks = 0 # all done break, continue
             return
-
 
 
         # Priority tag is NOT detected
@@ -778,10 +789,12 @@ class LaneFollowNode(DTROS):
                     self.twist.omega = -10
                     self.twist.v = 0.1
 
-        
 
 
     def creep(self): ## Currently hardcoded to spin to centre tag 227
+        """
+        Corrects for when we lose the priority tag by spinning and pulling ahead
+        """
         self.creepingTicks += 1
 
         if(self.creepingTicks < self.creepingInterval):
@@ -818,6 +831,9 @@ class LaneFollowNode(DTROS):
 
 
     def turn_is_complete(self, dir):
+        """
+        Checks if the bot has completed the requested turning sequence 
+        """
         # RIGHT TURN
         if dir == ID_LIST["right"]:
             if self.ticks[0] - self.stop_ticks[0] < 250:
@@ -834,6 +850,9 @@ class LaneFollowNode(DTROS):
         return True
     
     def straight_is_complete(self, dir):
+        """
+        Checks if the bot has moved forward enough to begin turn sequence 
+        """
         # RIGHT TURN
         if dir == ID_LIST["right"]:
             if self.ticks[0] - self.stop_ticks[0] < 140 and self.ticks[1] - self.stop_ticks[1] < 140:
@@ -850,17 +869,22 @@ class LaneFollowNode(DTROS):
         return True
  
     def cb_check_shutdown(self, msg):
-         if msg.data:
-              rospy.signal_shutdown("PARKED")
+        """
+        Callback to check and see if we should kill the node
+        """
+        if msg.data:
+            rospy.signal_shutdown("PARKED")
 
     def hook(self):
+        """
+        Stops the wheels from turning on shutdown
+        """
         # print("SHUTTING DOWN")
         self.twist.v = 0
         self.twist.omega = 0
         self.vel_pub.publish(self.twist)
         for i in range(8):
             self.vel_pub.publish(self.twist)
-
 
 if __name__ == "__main__":
     node = LaneFollowNode("lanefollow_node")
