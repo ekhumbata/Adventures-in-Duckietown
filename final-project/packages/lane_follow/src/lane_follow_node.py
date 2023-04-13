@@ -13,6 +13,8 @@ import numpy as np
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped, WheelEncoderStamped
 import time
 
+from random import randint
+
 ROAD_MASK = [(20, 60, 0), (50, 255, 255)]
 DEBUG = False
 ENGLISH = False
@@ -36,7 +38,9 @@ class LaneFollowNode(DTROS):
 
 
         ### Parking Stall ###
-        self.parking_stall = 1
+        self.parking_stall = 2
+        # self.parking_stall = randint(1,4)
+        print(f"############## PARKING IN STALL {self.parking_stall} #####################")
         self.isBackingIn = False
         ### Parking Stall ###
 
@@ -49,6 +53,8 @@ class LaneFollowNode(DTROS):
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
         self.sub_encoder_ticks_left = rospy.Subscriber("/" +  os.environ['VEHICLE_NAME'] + "/left_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="left")
         self.sub_encoder_ticks_right = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/right_wheel_encoder_node/tick",WheelEncoderStamped,self.cb_encoder_data,callback_args="right")
+        self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
+
 
 
         self.pub = rospy.Publisher("/" + self.veh + "/output/image/mask/compressed",
@@ -82,6 +88,8 @@ class LaneFollowNode(DTROS):
         self.tagIdPriorityPub = rospy.Publisher("/" + self.veh + "/april_priority",
                                 Int32,
                                 queue_size=1)
+        
+        self.pub_node_kill = rospy.Publisher("/" + self.veh + "/kill_nodes", Bool, queue_size=1)
 
         self.jpeg = TurboJPEG()
 
@@ -145,6 +153,7 @@ class LaneFollowNode(DTROS):
         self.maxMissedDetectionCount = 3
 
         self.last_stop_tag = 0
+        self.kill = False
 
 
         #temp
@@ -188,6 +197,11 @@ class LaneFollowNode(DTROS):
         msg = Int32()
         msg.data = self.april_priority
         self.tagIdPriorityPub.publish(msg)
+
+    def kill_pub(self):
+        msg = Bool()
+        msg.data = self.kill
+        self.pub_node_kill.publish(msg)
 
     def tagDistCallback(self, msg):
         self.tagDist = msg.data
@@ -276,7 +290,8 @@ class LaneFollowNode(DTROS):
                 self.navigateAroundDuckie = True #basically just sets the state to 2
 
             # if we are at a red stop line, or a blue crosswalk
-            elif y+h > 100 and time.time() - self.stop_t > 8:
+            # print(f"time diff: {time.time() - self.stop_t}")
+            if y+h > 100 and time.time() - self.stop_t > 7:
                 print("STOP after time", cv2.contourArea(max(stop_contours, key = cv2.contourArea)))
                 self.run_pid = False
                 self.stop_t = time.time()
@@ -331,6 +346,7 @@ class LaneFollowNode(DTROS):
         ## Stage 4: Parking Lot ##
         if(self.lastTagId == 227):
             self.hasClockedParkingLotTag = True # Prime the bot to enter parking lot next time it leaves a stop sign after we clock the 227 apriltag
+            self.april_priority = 227  # this is just so we effectively go into parking state when it is time
 
 
         
@@ -489,17 +505,13 @@ class LaneFollowNode(DTROS):
 
 
     def parkingLotSubstage0(self):
-        self.april_priority = 227  # this is just so we effectively go into parking state when it is time
-        self.resetCount = 0 #temp
-        self.stage0DelayedStartCount += 1
 
         target_depth = 0  # correct depth depends on self.parking_stall - (2 or 4: 34cm) - (1 or 3: 17cm)
+        # print(f"depth: {self.tagDist} of tag {self.lastTagId}")
         if(self.parking_stall == 2 or self.parking_stall == 4):
-            target_depth = 0.42 #seems slightly too deep now??
-            # target_depth = 0.45
+            target_depth = 0.44 # for close stalls
         else:
-            target_depth = 0.22 #seems slightly too deep now??
-            # target_depth = 0.25
+            target_depth = 0.20 # for far stalls
 
 
 
@@ -599,7 +611,7 @@ class LaneFollowNode(DTROS):
 
             # Okay cool! Move to next substage
             self.substage = 3
-            rospy.signal_shutdown("done")
+            self.kill = True
 
 
 
@@ -627,79 +639,6 @@ class LaneFollowNode(DTROS):
                     print("|| Creeping for visibility")
                     self.twist.omega = 0
                     self.twist.v = 0.5*self.velocity
-
-
-
-
-    def parkingLotSubstage2Reverse(self):
-        target_depth = 1.2
-        target_depth_227 = 1.0
-
-        ## Pause creeping every couple ticks to potentially detect tags
-        if(self.creepingTicks >= self.creepingInterval):
-            self.creepingTicks += 1
-            # print("|| Pause creeping")
-            self.twist.omega = 0
-            self.twist.v = 0
-
-            if(self.creepingTicks > 2*self.creepingInterval):
-                self.creepingTicks = 0 # all done break, continue
-
-
-
-        # print("Dist:", self.tagDist, self.safeTagId, self.april_priority)
-
-
-        print("|| Depth:", self.tagDist)
-
-        ## Tag close enough - STOP!
-        correctDepthAprilPriority = (self.tagDist > target_depth and self.tagDist < 900 and self.safeTagId == self.april_priority) # less than to prevent lost detection stop
-        correctDepthApril227 = (self.tagDist > target_depth_227 and self.tagDist < 900 and self.safeTagId == 227) # less than to prevent lost detection stop
-
-        if(correctDepthAprilPriority or correctDepthApril227):
-            print("******* DONE *******")
-            self.twist.v = 0
-            self.twist.omega = 0
-
-            # Okay cool! All done, kill program here
-            self.substage = 3
-            rospy.signal_shutdown("done")
-
-
-
-
-        ## PID middle of tag (only if it IS the priority tag)
-        elif(self.safeTagId == self.april_priority and self.tagDist < 900): # if tag distance is huge, it is missing a detection
-            self.pidPriorityTag()
-
-
-        ## We don't see the priority april - wait a couple frames and keep rolling then try creep
-        elif(self.safeTagId != self.april_priority or self.tagDist > 900):
-            self.missedDetectionCount += 1
-
-            # Lost for a couple frames, keep driving in hopes we will see it.
-            if(self.missedDetectionCount < self.maxMissedDetectionCount): 
-                # print("|| Missed detection")
-                self.twist.omega = 0
-                self.twist.v = 0.5*self.velocity
-
-                if(self.isBackingIn and self.substage == 2):
-                        self.twist.v = -0.5*self.velocity
-
-
-            # We properly lost the tag - start creeping
-            else:
-                self.creepingTicks += 1
-                if(self.creepingTicks < self.creepingInterval):
-                    # print("|| Creeping for visibility")
-                    self.twist.omega = 0
-                    self.twist.v = 0.5*self.velocity
-
-                    if(self.isBackingIn and self.substage == 2):
-                        self.twist.v = -0.75*self.velocity
-        
-
-
 
 
     def pidPriorityTag(self):
@@ -910,9 +849,9 @@ class LaneFollowNode(DTROS):
         # return true if none of the checks fail
         return True
  
-    def check_shutdown(self):
-         if not self.run:
-              rospy.signal_shutdown("all tags detected")
+    def cb_check_shutdown(self, msg):
+         if msg.data:
+              rospy.signal_shutdown("PARKED")
 
     def hook(self):
         # print("SHUTTING DOWN")
@@ -929,5 +868,6 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         node.drive()
         node.tagPriorityPub()
-        node.check_shutdown()
+        # node.check_shutdo wn()
+        node.kill_pub()
         rate.sleep()

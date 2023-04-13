@@ -51,6 +51,7 @@ class apriltag_node(DTROS):
         self.img_sub = rospy.Subscriber(img_topic, CompressedImage, self.cb_img, queue_size = 1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
         self.april_dist_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/dist_from_april", Float32, self.cb_april_dist, queue_size = 1)
+        self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
 
         # publishers
         # self.pub = rospy.Publisher('/grey_img/compressed', CompressedImage, queue_size=10)
@@ -59,6 +60,10 @@ class apriltag_node(DTROS):
 
     def cb_kill(self, msg):
         self.run = msg.data
+
+    def cb_check_shutdown(self, msg):
+         if msg.data:
+              rospy.signal_shutdown("PARKED")
 
     def cb_april_dist(self, msg):
         self.dist_from_april = msg.data
@@ -79,14 +84,14 @@ class apriltag_node(DTROS):
         contours, hierarchy = cv2.findContours(duck_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         # print("DATA", self.dist_from_april, time.time() - self.stop_time, self.run_pid)
-        if self.dist_from_april < 0.3 :#or np.mean(edges) > 4:
-            if self.run_pid and time.time() - self.stop_time > 5:
-                self.stop_time = time.time()
-            self.run_pid = False
-            if time.time() - self.stop_time > 2:
-                self.run_pid = True
-        else:
-            self.run_pid = True
+        # if self.dist_from_april < 0.3 :#or np.mean(edges) > 4:
+        #     if self.run_pid and time.time() - self.stop_time > 12:
+        #         self.stop_time = time.time()
+        #     self.run_pid = False
+        #     if time.time() - self.stop_time > 2:
+        #         self.run_pid = True
+        # else:
+        #     self.run_pid = True
         try:
             self.run_pid = cv2.contourArea(max(contours, key = cv2.contourArea)) < 500
         except ValueError:
@@ -117,6 +122,9 @@ class apriltag_node(DTROS):
 if __name__ == '__main__':
     # create the node
     node = apriltag_node(node_name='april_tag_detector')
+    # print("STARTING SLEEP...")
+    time.sleep(30)
+    print("WAKING UP STOP WALK")
 
     # rate = rospy.Rate(10) # once every 10s
     # rate = rospy.Rate(node.pub_rate)

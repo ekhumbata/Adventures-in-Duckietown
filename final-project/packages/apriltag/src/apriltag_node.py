@@ -57,6 +57,7 @@ class apriltag_node(DTROS):
         self.subscriberCameraInfo = rospy.Subscriber(info_topic, CameraInfo, self.camera_info_callback,  queue_size=1)
         self.kill_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/shutdown", Bool, self.cb_kill, queue_size = 1)
         self.april_priority_sub = rospy.Subscriber(f"/{os.environ['VEHICLE_NAME']}/april_priority", Int32, self.cb_april_priority, queue_size = 1)
+        self.sub_shutdown = rospy.Subscriber("/" + os.environ['VEHICLE_NAME'] + "/kill_nodes",Bool,self.cb_check_shutdown)
 
 
         # publishers
@@ -70,6 +71,10 @@ class apriltag_node(DTROS):
 
     def cb_april_priority(self, msg):
         self.april_priority = msg.data
+
+    def cb_check_shutdown(self, msg):
+         if msg.data:
+              rospy.signal_shutdown("PARKED")
 
 
     def camera_info_callback(self, msg):
@@ -198,6 +203,7 @@ class apriltag_node(DTROS):
         closest = 0
         priority_found = False
         priority_centre = 320
+        priority_p = -1
         for tag in tags:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
@@ -243,9 +249,11 @@ class apriltag_node(DTROS):
                 self.prev_tag = tag_id
                 # print("p:", self.p, "q:", self.q)
 
-                if(tag_id == self.april_priority):
-                    priority_found = True
-                    priority_centre = cX
+                closest = diff
+            if(tag_id == self.april_priority):
+                priority_found = True
+                priority_p = tag.pose_t.T[0]
+                priority_centre = cX
         
 
         # set the dist from april to the dist to the april tag
@@ -254,9 +262,10 @@ class apriltag_node(DTROS):
         # if self.dist_from_april < 0.5:
         #     # print("starting boosted cycles")
         #     self.boosted_pub_rate_count = 0 # we are good to boost the rate, reset the iter count to 0 to start it
-        
-        self.dist_from_april = self.p[2] ## just the camera z dist
-        self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
+        if priority_found:
+            # print(f"found priority dist to {self.april_priority}: {priority_p[2]}")
+            self.dist_from_april = priority_p[2] ## just the camera z dist
+            self.error_from_april = priority_centre-320   ## Use pixel coords instead of real world coordinates, pid likes it more (and this is easier to do math with)
 
         # publish the image with the tag id and box to a custom topic
         msg = CompressedImage()
