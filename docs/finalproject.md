@@ -37,7 +37,7 @@ Once most or all of the turn was completed according to the wheel ticks, we re-e
 
 
 ![](../docs/assets/images_finalProject/stage1.jpg)
-<figcaption align = "center"><b>Fig.1: Stage 1</b></figcaption>
+<figcaption align = "center"><b>Fig.1: Stage 1 (Done by Eric, Jasper and Cameron)</b></figcaption>
 
 <br>
 
@@ -55,10 +55,10 @@ Even though we didn't end up maneuvering around the broken bot, we did stop for 
 
 Finally, for stopping while pe🦆strians (pedestrians) were crossing, we did almost the exact same thing again! We took an image of the ducks, color masked it, and while we saw that yellow in our FOV, we would not move. This worked well for us and we got stage two done fairly painlessly!
 
-One problem we did run into was after implementing stage two and re-testing stage one. After implementation, we noticed some strange stopping behavior and realized our bot was seeing yellow during stage 1 where none was present, perhaps due to our HSV values. Instead of fine tuning our HSV over and over, we decided to sleep the control node for stage two for the duration of stage one (~30 seconds) which fixed our problem.
+One problem we did run into was after implementing stage two and re-testing stage one. After implementation, we noticed some strange stopping behavior and realized our bot was seeing yellow during stage 1 where none was present, perhaps due to our HSV values. Instead of fine tuning our HSV over and over, we decided to sleep the control node for stage two for the duration of stage one (~30 seconds) which fixed our problem. Alternatively, we could detect the final april tag coming out of the last intersection which would be a little more robust instead of timing the first section of the course. This may be something to try and do on a next iteration.
 
 ![](../docs/assets/images_finalProject/stage2.jpg)
-<figcaption align = "center"><b>Fig.2: Stage 2</b></figcaption>
+<figcaption align = "center"><b>Fig.2: Stage 2 (Mainly done by Jasper)</b></figcaption>
 
 <br>
 
@@ -70,15 +70,14 @@ One problem we did run into was after implementing stage two and re-testing stag
 
 In stage three we came up with a good approach since we knew the stall location wouldn't change between runs and the requested stall would be known at compile time. Once we entered the parking lot, we used the apriltag at the front to localize ourselves. If we did not detect the apriltag we would "creep" or spin around until we found it and could localize ourselves. Our bot would then drive forward a set distance depending on if we wanted to park in the close or far stalls ($fig. 3$). 
 
-
-After we had met the correct distance, we take a series of miniature spins to centre the bot with the target april tag in the requested stall. Since dead reckoning can be inaccurate as well as very inconsistent without lots of painful tuning, this was a clever, robust way, to get us in the parking stall without touching the yellow lines. Once again, if we did not detect the stall apriltag, we would "creep" or spin around until we found it. We then used our PID to drive forward until we were sufficiently within the stall by measuring the distance to the stall apriltag. Once we were close enough, our bot would stop and shut down all nodes.
+After we had met the correct distance, we take a series of miniature spins to centre the bot with the target apriltag in the requested stall. Since dead reckoning can be inaccurate as well as very inconsistent without lots of painful tuning, this was a clever, robust way, to get us in the parking stall without touching the yellow lines. Turns at right angles didn't work very well at all; this was a great solution to combat that. Once again, if we did not detect the stall apriltag, we would "creep" or spin around until we found it. We then used our PID to drive forward until we were sufficiently within the stall by measuring the distance to the stall apriltag. Once we were close enough, our bot would stop and shut down all nodes. One thing we would like to do differently in future labs is to use number detection to find the correct stall. Then we would not have to rely on the static positions of the stalls; they could be swapped around and we could still search for the stall that was asked for and park correctly in dynamic situations.
 
 ![](../docs/assets/images_finalProject/stage3.jpg)
-<figcaption align = "center"><b>Fig.3: Stage 3</b></figcaption>
+<figcaption align = "center"><b>Fig.3: Stage 3 (Mainly done by Cameron)</b></figcaption>
 
 <br>
 
-## Wrapping Up...
+## Wrapping Up The Course...
 ---
 ### 🦆s Are Awesome!
 
